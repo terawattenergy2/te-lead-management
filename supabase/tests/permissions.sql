@@ -1,0 +1,34 @@
+begin;
+do $$
+declare u1 uuid;u2 uuid;e1 uuid;e2 uuid;l uuid;a1 uuid;a2 uuid;rows jsonb;
+begin
+ select id into u1 from auth.users order by created_at limit 1;
+ select id into u2 from auth.users where id<>u1 order by created_at limit 1;
+ if u1 is null or u2 is null then raise exception 'Two existing users required for rollback-only test';end if;
+ if exists(select 1 from public.tw_members where user_id in(u1,u2)) then raise exception 'Use accounts without Lead Hub membership for test';end if;
+ insert into public.tw_epcs(name,email) values('ROLLBACK TEST EPC A','qa-a@example.invalid') returning id into e1;
+ insert into public.tw_epcs(name,email) values('ROLLBACK TEST EPC B','qa-b@example.invalid') returning id into e2;
+ insert into public.tw_members(user_id,role) values(u1,'admin');
+ insert into public.tw_members(user_id,role,epc_id) values(u2,'epc',e1);
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',u1,'role','authenticated')::text,true);
+ l:=public.tw_submit_lead('ROLLBACK TEST','0810000000','qa@example.invalid','Bangkok','{"property":"บ้านพักอาศัย","bill":"ต่ำกว่า 3,000 บาท","ownership":"เป็นเจ้าของ","timeline":"ภายใน 1 เดือน"}',true);
+ perform public.tw_assign_lead(l,array[e1,e2]);
+ select id into a1 from public.tw_assignments where lead_id=l and epc_id=e1;
+ select id into a2 from public.tw_assignments where lead_id=l and epc_id=e2;
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',u2,'role','authenticated')::text,true);
+ rows:=public.tw_list_leads();
+ if jsonb_array_length(rows)<>1 or rows->0->>'phone' is not null or rows->0->>'email' is not null or rows->0->>'name'<>'ข้อมูลลูกค้าถูกปกปิด' then raise exception 'Preaccept data leak';end if;
+ begin perform public.tw_accept_lead(a2);raise exception 'Cross EPC acceptance allowed';exception when others then if sqlerrm='Cross EPC acceptance allowed' then raise;end if;end;
+ begin perform public.tw_assign_lead(l,array[e2]);raise exception 'EPC assignment allowed';exception when others then if sqlerrm='EPC assignment allowed' then raise;end if;end;
+ begin perform public.tw_update_status(a1,'Close');raise exception 'Preaccept update allowed';exception when others then if sqlerrm='Preaccept update allowed' then raise;end if;end;
+ perform public.tw_accept_lead(a1);
+ rows:=public.tw_list_leads();if rows->0->>'phone'<>'0810000000' then raise exception 'Accepted contact missing';end if;
+ perform public.tw_update_status(a1,'Close');
+ update public.tw_assignments set sent_at=now()-interval '6 days',accepted_at=null,status='รอรับ Lead' where id=a1;
+ begin perform public.tw_accept_lead(a1);raise exception 'Expired acceptance allowed';exception when others then if sqlerrm='Expired acceptance allowed' then raise;end if;end;
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',u1,'role','authenticated')::text,true);
+ if public.tw_reclaim_expired()<>1 then raise exception 'Expiry reclaim failed';end if;
+ if (select count(*) from public.tw_email_outbox where assignment_id in(a1,a2))<>2 then raise exception 'Outbox missing';end if;
+ raise notice 'PASS: hidden PII, EPC isolation, acceptance, status, expiry, multi-EPC and email queue';
+end $$;
+rollback;

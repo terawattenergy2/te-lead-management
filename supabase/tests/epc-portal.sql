@@ -1,0 +1,36 @@
+begin;
+do $$
+declare admin_id uuid; ea uuid; eb uuid; lead uuid; aa uuid; ab uuid; request jsonb; challenge uuid; locked_challenge uuid; result uuid; items jsonb;
+begin
+ select user_id into admin_id from public.tw_members where role='admin' limit 1;
+ insert into public.tw_epcs(name,email,phone,employee_count) values('ROLLBACK EPC PORTAL A','portal-a@example.invalid','0812345678',2) returning id into ea;
+ insert into public.tw_epcs(name,email,phone,employee_count) values('ROLLBACK EPC PORTAL B','portal-b@example.invalid','0899999999',2) returning id into eb;
+ if has_table_privilege('anon','public.tw_epc_sessions','SELECT') or has_function_privilege('authenticated','public.tw_epc_portal_leads(uuid)','EXECUTE') then raise exception 'Private portal API exposed';end if;
+ request:=public.tw_epc_login_request('portal-a@example.invalid','0000000000','test-code','test-address-a','test-ip');
+ if request->>'epcId' is not null then raise exception 'Wrong phone accepted';end if;
+ request:=public.tw_epc_login_request('portal-a@example.invalid','+66812345678','test-code','test-address-a','test-ip');
+ if request->>'epcId'<>ea::text then raise exception 'Phone normalization failed';end if;
+ challenge:=(request->>'challengeId')::uuid;
+ result:=public.tw_epc_verify_login(challenge,'wrong','test-wrong-session');if result is not null then raise exception 'Wrong OTP accepted';end if;
+ result:=public.tw_epc_verify_login(challenge,'test-code','test-valid-session');if result<>ea then raise exception 'Correct OTP denied';end if;
+ if public.tw_epc_verify_login(challenge,'test-code','test-replay') is not null then raise exception 'OTP replay accepted';end if;
+ if not exists(select 1 from public.tw_epc_sessions where token_hash='test-valid-session' and epc_id=ea) then raise exception 'Session scope missing';end if;
+ request:=public.tw_epc_login_request('portal-a@example.invalid','0812345678','new-code','test-address-a','test-ip');locked_challenge:=(request->>'challengeId')::uuid;
+ for i in 1..5 loop perform public.tw_epc_verify_login(locked_challenge,'wrong','test-invalid-'||i);end loop;
+ if public.tw_epc_verify_login(locked_challenge,'new-code','locked-out') is not null then raise exception 'OTP lockout failed';end if;
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',admin_id,'role','authenticated')::text,true);
+ lead:=public.tw_submit_lead('ROLLBACK CUSTOMER','0810000000','customer@example.invalid','Bangkok','{"property":"บ้านพักอาศัย","bill":"ต่ำกว่า 3,000 บาท","ownership":"เป็นเจ้าของ","timeline":"ภายใน 1 เดือน"}',true);
+ perform public.tw_assign_lead(lead,array[ea,eb]);
+ select id into aa from public.tw_assignments where lead_id=lead and epc_id=ea;
+ select id into ab from public.tw_assignments where lead_id=lead and epc_id=eb;
+ items:=public.tw_epc_portal_leads(ea);
+ if jsonb_array_length(items)<>1 or items->0->>'id'<>aa::text or items->0->>'phone' is not null or items->0->>'email' is not null or items->0->>'name'<>'ข้อมูลลูกค้าถูกปกปิด' then raise exception 'Cross EPC or preaccept information leak';end if;
+ begin perform public.tw_epc_portal_action(ea,ab,'accept');raise exception 'Cross EPC access allowed';exception when others then if sqlerrm='Cross EPC access allowed' then raise;end if;end;
+ begin perform public.tw_epc_portal_action(ea,aa,'status','Close');raise exception 'Preaccept status allowed';exception when others then if sqlerrm='Preaccept status allowed' then raise;end if;end;
+ perform public.tw_epc_portal_action(ea,aa,'accept');items:=public.tw_epc_portal_leads(ea);
+ if items->0->>'phone'<>'0810000000' then raise exception 'Accepted contact not returned';end if;
+ perform public.tw_epc_portal_action(ea,aa,'status','Close');
+ update public.tw_assignments set status='รอรับ Lead',accepted_at=null,sent_at=now()-interval '6 days' where id=aa;
+ begin perform public.tw_epc_portal_action(ea,aa,'accept');raise exception 'Expired acceptance allowed';exception when others then if sqlerrm='Expired acceptance allowed' then raise;end if;end;
+end $$;
+rollback;

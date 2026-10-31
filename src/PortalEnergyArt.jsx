@@ -1,0 +1,2 @@
+import React from 'react';
+export default function PortalEnergyArt(){return <svg className="portal-energy-art" viewBox="0 0 900 500" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="portal-energy-light"><stop stopColor="#98d5ff" stopOpacity="0"/><stop offset=".5" stopColor="#ecffff"/><stop offset="1" stopColor="#70bfff" stopOpacity="0"/></linearGradient></defs><path d="M400 200 Q650 90 755 230 T710 430"/><path d="M470 170 Q790 70 800 280 T890 430"/><circle cx="725" cy="110" r="66"/></svg>}

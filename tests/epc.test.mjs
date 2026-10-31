@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';import vm from'node:vm';import{readFile}from'node:fs/promises';import{transformSync}from'esbuild';import{webcrypto}from'node:crypto';
+let handler,called;
+const fake={SUPABASE_URL:'https://test.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'test-service-only'};
+const epcA='00000000-0000-0000-0000-00000000000a';
+const db={from:table=>{const q={select:()=>q,eq:()=>q,gt:()=>q,maybeSingle:async()=>({data:table==='tw_epc_sessions'?{epc_id:epcA}:table==='tw_epcs'?{id:epcA,name:'Company A',email:'a@example.invalid',active:true}:null,error:null})};return q},rpc:async(name,args)=>{called={name,args};return{data:[],error:null}}};
+const ctx=vm.createContext({Deno:{env:{get:k=>fake[k]},serve:fn=>handler=fn},createClient:()=>db,crypto:webcrypto,TextEncoder,TextDecoder,Uint8Array,Uint32Array,btoa,atob,URL,URLSearchParams,Request,Response,AbortSignal,console,fetch:()=>{throw Error('No network in tests')}});
+const source=(await readFile(new URL('../supabase/functions/tw-epc/index.ts',import.meta.url),'utf8')).replace(/import \{createClient\} from '@supabase\/supabase-js';/,'');vm.runInContext(transformSync(source,{loader:'ts',format:'iife'}).code,ctx);
+const request=(action,body,token)=>handler(new Request('https://test.supabase.co/functions/v1/tw-epc/'+action,{method:body?'POST':'GET',headers:{Origin:'http://localhost:5173',...(token?{Authorization:'Bearer '+token}:{}),...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})}));
+assert.equal((await request('leads')).status,401);
+assert.equal((await request('leads',undefined,'valid-admin-jwt-is-not-an-epc-session')).status,401);
+assert.equal((await request('request-code',{email:'bad',phone:'0812345678'})).status,400);
+assert.equal((await request('verify-code',{email:'a@example.invalid',challengeId:'bad',code:'123456'})).status,400);
+const token='A'.repeat(43);const listed=await request('leads',undefined,token);assert.equal(listed.status,200);assert.equal((await listed.json()).company.id,epcA);assert.equal(called.args.p_epc_id,epcA);
+const accepted=await request('accept',{assignmentId:'00000000-0000-0000-0000-000000000001',epcId:'ATTACKER-COMPANY'},token);assert.equal(accepted.status,200);assert.equal(called.args.p_epc_id,epcA);assert.equal(called.args.p_action,'accept');
+assert.equal((await handler(new Request('https://test.supabase.co/functions/v1/tw-epc/leads',{headers:{Origin:'https://evil.example',Authorization:'Bearer '+token}}))).status,403);
+console.log('PASS: EPC requires separate session; admin token rejected; company identity comes from server session; forged company ignored; invalid OTP request and untrusted origin denied');
