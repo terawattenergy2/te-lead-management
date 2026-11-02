@@ -1,3 +1,4 @@
+import AdminPassword from "./AdminPassword";
 import SurveyDetails from "./SurveyDetails";
 import { leadFields } from "./leadFields";
 import LeadImport from "./LeadImport.jsx";
@@ -24,6 +25,7 @@ export default function LiveApp() {
     [query, setQuery] = useState(""),
     [filter, setFilter] = useState("ทั้งหมด"),
     [notice, setNotice] = useState(""),
+    [passwordOpen, setPasswordOpen] = useState(false),
     [trash, setTrash] = useState(null),
     [deleteTarget, setDeleteTarget] = useState(null),
     [importing, setImporting] = useState(false),
@@ -253,6 +255,12 @@ export default function LiveApp() {
         </div>
       </aside>
       <main>
+        {admin && passwordOpen && (
+          <AdminPassword
+            email={session.user.email}
+            onClose={() => setPasswordOpen(false)}
+          />
+        )}{" "}
         {admin && deleteTarget && (
           <div className="overlay">
             <section
@@ -360,6 +368,11 @@ export default function LiveApp() {
               </p>
             </div>
             <div className="admin-page-actions">
+              {admin && (
+                <button className="btn" onClick={() => setPasswordOpen(true)}>
+                  เปลี่ยนรหัสผ่าน
+                </button>
+              )}
               {admin && (
                 <button
                   className="btn"
@@ -682,8 +695,8 @@ export default function LiveApp() {
                   ))}
                 </dl>
               </div>
-            )} 
-            {admin && current.answers.imported && (
+            )} */}
+            {/* {admin && current.answers.imported && (
               <div className="task">
                 <strong>รายละเอียดจากไฟล์นำเข้า</strong>
                 <dl>
@@ -702,7 +715,7 @@ export default function LiveApp() {
                   ))}
                 </dl>
               </div>
-            )}*/}
+            )} */}
             {admin && (
               <>
                 <h3>ส่งให้ EPC</h3>
