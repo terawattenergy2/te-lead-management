@@ -1,0 +1,3 @@
+import React from'react';
+const labels={service:'บริการที่สนใจ',name:'ชื่อ-นามสกุล',phone:'เบอร์โทร',line:'Line ID',email:'อีเมล',gps:'GPS / Google Maps',province:'จังหวัด',property:'ประเภทสถานที่',billAmount:'ค่าไฟต่อเดือน (บาท)',ev:'รถยนต์ไฟฟ้า (EV)',usage:'ช่วงเวลาที่ใช้ไฟ',system:'ระบบที่สนใจ',battery:'ต้องการ Battery',timeline:'ระยะเวลาติดตั้ง / ความพร้อม',contact:'ต้องการให้ทีมงาน'};
+export default function SurveyDetails({data}){return data?<div className="task"><strong>คำตอบแบบสอบถาม Sigenergy</strong><dl>{Object.entries(labels).map(([k,label])=><React.Fragment key={k}><dt>{label}</dt><dd style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{data[k]||'—'}</dd></React.Fragment>)}</dl></div>:null}
