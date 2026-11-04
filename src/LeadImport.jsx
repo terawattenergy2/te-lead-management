@@ -1,11 +1,161 @@
-import React,{useState}from'react';
-import{X,Upload}from'lucide-react';
-import{rpc}from'./backend';
-import{parseLeadCSV}from'./leadImport';
-export default function LeadImport({onClose,onSaved}){
- const[rows,setRows]=useState([]),[file,setFile]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false),[consent,setConsent]=useState(false),[result,setResult]=useState(null);
- async function read(e){setError('');setRows([]);setResult(null);setConsent(false);const f=e.target.files?.[0];if(!f)return;try{if(f.size>2*1024*1024)throw Error('ไฟล์ต้องไม่เกิน 2 MB');setFile(f.name);setRows(parseLeadCSV(await f.text()))}catch(e){setError(e.message)}}
- async function save(){setBusy(true);setError('');try{const r=await rpc('tw_import_leads',{p_rows:rows.filter(r=>!r.issues.length).map(r=>r.data),p_filename:file,p_consent:consent});setResult(r);await onSaved()}catch(e){setError(e.message)}finally{setBusy(false)}}
- const valid=rows.filter(r=>!r.issues.length);
- return <div className="overlay"><section className="modal" role="dialog" aria-modal="true" aria-labelledby="import-title" style={{maxWidth:1000}}><button className="close-button" disabled={busy} aria-label="ปิดการนำเข้า" onClick={onClose}><X/></button><div className="eyebrow">IMPORT CUSTOMER LEADS</div><h2 id="import-title">นำเข้า Leads จากไฟล์</h2><p>Google Sheets → ไฟล์ → ดาวน์โหลด → ค่าที่คั่นด้วยจุลภาค (.csv) โดยเลือกแท็บ Leads ก่อนดาวน์โหลด</p><label>เลือกไฟล์ CSV (สูงสุด 500 แถว / 2 MB)<input type="file" accept=".csv,text/csv" disabled={busy} onChange={read}/></label><p>ใช้หัวคอลัมน์ Customer Name, Phone, Email, Province ตาม TE_Lead_Master พร้อมเก็บรายละเอียดโครงการและคอลัมน์เดิม (ไม่เก็บ Token) Lead ID ต่างกันนำเข้าได้แม้ชื่อและเบอร์เดียวกัน รายการเดิมตรวจซ้ำด้วย Lead ID + Created At + Partner ID การนำเข้าไม่มอบหมาย EPC หรือส่งอีเมลโดยอัตโนมัติ</p>{error&&<p role="alert" className="danger">{error}</p>}{result?<div role="status" className="attention">นำเข้าสำเร็จ {result.imported} รายการ · ข้ามข้อมูลที่มีแล้ว {result.skipped} รายการ</div>:rows.length>0&&<><p>ทั้งหมด {rows.length} แถว · พร้อมนำเข้า {valid.length} · ต้องแก้ไข / ซ้ำในไฟล์ {rows.length-valid.length}</p><div className="table-wrap" style={{maxHeight:280,overflow:'auto'}}><table><thead><tr><th>แถว</th><th>ชื่อ</th><th>เบอร์โทร</th><th>จังหวัด</th><th>ผลตรวจ</th></tr></thead><tbody>{rows.map(r=><tr key={r.row}><td>{r.row}</td><td>{r.data['Customer Name']}</td><td>{r.data.Phone}</td><td>{r.data.Province}</td><td>{r.issues.join(' · ')||'พร้อมนำเข้า'}</td></tr>)}</tbody></table></div><label className="consent"><input type="checkbox" checked={consent} disabled={busy} onChange={e=>setConsent(e.target.checked)}/>ยืนยันว่ามีสิทธิ์นำเข้าข้อมูลและได้รับความยินยอมให้ Terawatt เก็บและส่งต่อให้ EPC แล้ว</label></>}<div className="question-controls"><button className="btn" disabled={busy} onClick={onClose}>{result?'ปิด':'ยกเลิก'}</button>{!result&&<button className="btn primary" disabled={busy||!consent||!valid.length} onClick={save}><Upload size={16}/>{busy?'กำลังนำเข้า…':'นำเข้า '+valid.length+' รายการที่ผ่านตรวจ'}</button>}</div></section></div>
+import React, { useState } from "react";
+import { X, Upload } from "lucide-react";
+import { rpc } from "./backend";
+import { parseLeadCSV } from "./leadImport";
+export default function LeadImport({ onClose, onSaved }) {
+  const [rows, setRows] = useState([]),
+    [file, setFile] = useState(""),
+    [error, setError] = useState(""),
+    [busy, setBusy] = useState(false),
+    [consent, setConsent] = useState(false),
+    [result, setResult] = useState(null);
+  async function read(e) {
+    setError("");
+    setRows([]);
+    setResult(null);
+    setConsent(false);
+    const f = e.target.files?.[0];
+    if (!f) return;
+    try {
+      if (f.size > 2 * 1024 * 1024) throw Error("ไฟล์ต้องไม่เกิน 2 MB");
+      setFile(f.name);
+      setRows(parseLeadCSV(await f.text()));
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+  async function save() {
+    setBusy(true);
+    setError("");
+    try {
+      const r = await rpc("tw_import_leads", {
+        p_rows: rows.filter((r) => !r.issues.length).map((r) => r.data),
+        p_filename: file,
+        p_consent: consent,
+      });
+      setResult(r);
+      await onSaved();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  const valid = rows.filter((r) => !r.issues.length);
+  return (
+    <div className="overlay">
+      <section
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="import-title"
+        style={{ maxWidth: 1000 }}
+      >
+        <button
+          className="close-button"
+          disabled={busy}
+          aria-label="ปิดการนำเข้า"
+          onClick={onClose}
+        >
+          <X />
+        </button>
+        <div className="eyebrow">IMPORT CUSTOMER LEADS</div>
+        <h2 id="import-title">นำเข้า Leads จากไฟล์</h2>
+        <p>
+          Google Sheets → ไฟล์ → ดาวน์โหลด → ค่าที่คั่นด้วยจุลภาค (.csv)
+          โดยเลือกแท็บ Leads ก่อนดาวน์โหลด
+        </p>
+        <label>
+          เลือกไฟล์ CSV (สูงสุด 500 แถว / 2 MB)
+          <input
+            type="file"
+            accept=".csv,text/csv"
+            disabled={busy}
+            onChange={read}
+          />
+        </label>
+        <p>
+          ใช้หัวคอลัมน์ Customer Name, Phone, Email, Province ตาม TE_Lead_Master
+          พร้อมเก็บรายละเอียดโครงการและคอลัมน์เดิม (ไม่เก็บ Token) Lead ID
+          ต่างกันนำเข้าได้แม้ชื่อและเบอร์เดียวกัน รายการเดิมตรวจซ้ำด้วย Lead ID
+          + Created At + Partner ID การนำเข้าไม่มอบหมาย EPC
+          หรือส่งอีเมลโดยอัตโนมัติ
+        </p>
+        {error && (
+          <p role="alert" className="danger">
+            {error}
+          </p>
+        )}
+        {result ? (
+          <div role="status" className="attention">
+            นำเข้าสำเร็จ {result.imported} รายการ · ข้ามข้อมูลที่มีแล้ว{" "}
+            {result.skipped} รายการ
+          </div>
+        ) : (
+          rows.length > 0 && (
+            <>
+              <p>
+                ทั้งหมด {rows.length} แถว · พร้อมนำเข้า {valid.length} ·
+                ต้องแก้ไข / ซ้ำในไฟล์ {rows.length - valid.length}
+              </p>
+              <div
+                className="table-wrap"
+                style={{ maxHeight: 280, overflow: "auto" }}
+              >
+                <table>
+                  <thead>
+                    <tr>
+                      <th>แถว</th>
+                      <th>ชื่อ</th>
+                      <th>เบอร์โทร</th>
+                      <th>จังหวัด</th>
+                      <th>ผลตรวจ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((r) => (
+                      <tr key={r.row}>
+                        <td>{r.row}</td>
+                        <td>{r.data["Customer Name"]}</td>
+                        <td>{r.data.Phone}</td>
+                        <td>{r.data.Province}</td>
+                        <td>{r.issues.join(" · ") || "พร้อมนำเข้า"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <label className="consent">
+                <input
+                  type="checkbox"
+                  checked={consent}
+                  disabled={busy}
+                  onChange={(e) => setConsent(e.target.checked)}
+                />
+                ยืนยันว่ามีสิทธิ์นำเข้าข้อมูลและได้รับความยินยอมให้ Terawatt
+                เก็บและส่งต่อให้ EPC แล้ว
+              </label>
+            </>
+          )
+        )}
+        <div className="question-controls">
+          <button className="btn" disabled={busy} onClick={onClose}>
+            {result ? "ปิด" : "ยกเลิก"}
+          </button>
+          {!result && (
+            <button
+              className="btn primary"
+              disabled={busy || !consent || !valid.length}
+              onClick={save}
+            >
+              <Upload size={16} />
+              {busy
+                ? "กำลังนำเข้า…"
+                : "นำเข้า " + valid.length + " รายการที่ผ่านตรวจ"}
+            </button>
+          )}
+        </div>
+      </section>
+    </div>
+  );
 }

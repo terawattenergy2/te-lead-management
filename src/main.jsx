@@ -1,16 +1,1020 @@
-import EPCPortal from './EPCPortal';
-import EPCManager from './EPCManager';
-import LiveApp from './LiveApp';
-import {configured} from './backend';
-import Customer from './Customer';
-import React,{useState,useEffect} from 'react';import{createRoot}from'react-dom/client';import{LayoutDashboard,Users,Building2,ChartNoAxesCombined,Settings,ArrowUpRight,Plus,Search,ChevronDown,Bell,ArrowRight,Clock,Check,Send,X,Phone,Sun,Download,FileText,ShieldCheck,LogOut}from'lucide-react';import './style.css';import './solar-theme.css';
-const partners=['Solar Prime','Energy Absolute','Sunwork EPC','GreenVolt'];const initial=[['TW-1028','บริษัท เอเวอร์กรีน ฟู้ดส์ จำกัด','โรงงาน / อุตสาหกรรม','สมุทรปราการ',250,'Solar Prime','รอรับ Lead',3],['TW-1027','คุณณัฐวุฒิ วัฒนกุล','บ้านพักอาศัย','กรุงเทพมหานคร',10,'Sunwork EPC','Pending',1],['TW-1026','บริษัท พีเอส โลจิสติกส์ จำกัด','อาคารพาณิชย์','ชลบุรี',120,'','Lead ใหม่',0],['TW-1025','บริษัท นอร์ธ สตาร์ เท็กซ์ไทล์ จำกัด','โรงงาน / อุตสาหกรรม','ปทุมธานี',500,'Energy Absolute','Close',2],['TW-1024','คุณปิยะดา ศรีสุข','บ้านพักอาศัย','นนทบุรี',15,'GreenVolt','รอรับ Lead',5],['TW-1023','บริษัท บลูโอเชียน รีเทล จำกัด','อาคารพาณิชย์','กรุงเทพมหานคร',80,'Solar Prime','Pending',2],['TW-1022','คุณธนกร สุขสวัสดิ์','บ้านพักอาศัย','นครปฐม',5,'Sunwork EPC','Lost',1],['TW-1021','บริษัท อะกริเทค โซลูชัน จำกัด','โรงงาน / อุตสาหกรรม','อยุธยา',320,'','Lead ใหม่',0]].map((a,i)=>({id:a[0],name:a[1],type:a[2],province:a[3],kw:a[4],epc:a[5],status:a[6],sent:Date.now()-a[7]*864e5,phone:'081-000-'+(1000+i),email:'customer'+i+'@example.com',logs:[]}));
-function App(){const[demoEpcs,setDemoEpcs]=useState(()=>{try{const saved=JSON.parse(localStorage.getItem('tw-demo-epcs'));if(Array.isArray(saved))return saved}catch{}return ['Solar Prime','Energy Absolute','Sunwork EPC','GreenVolt'].map((name,i)=>({id:'demo-'+i,name,email:'',phone:'',employeeCount:null,products:[]}))});const partners=demoEpcs.map(e=>e.name);const[addingEpc,setAddingEpc]=useState(false);async function saveDemoEpc(a){if(demoEpcs.some(e=>e.id!==a.p_id&&e.email.toLowerCase()===a.p_email.toLowerCase()))throw new Error('อีเมลกลางนี้มี EPC อยู่แล้ว');const record={id:a.p_id||crypto.randomUUID(),name:a.p_name,email:a.p_email,phone:a.p_phone,employeeCount:a.p_employee_count,products:a.p_products};const next=a.p_id?demoEpcs.map(e=>e.id===a.p_id?record:e):[...demoEpcs,record];localStorage.setItem('tw-demo-epcs',JSON.stringify(next));setDemoEpcs(next)}let[leads,setLeads]=useState(()=>{try{return JSON.parse(localStorage.getItem('tw-leads'))||initial}catch{return initial}}),[page,setPage]=useState('ภาพรวม'),[query,setQuery]=useState(''),[filter,setFilter]=useState('ทั้งหมด'),[modal,setModal]=useState(null),[selected,setSelected]=useState(null),[epc,setEpc]=useState(partners[0]),[toast,setToast]=useState(''),[role,setRole]=useState('Admin'),[partner,setPartner]=useState(partners[0]);useEffect(()=>{const sync=()=>{try{const v=JSON.parse(localStorage.getItem('tw-leads'));if(v)setLeads(v)}catch{}};window.addEventListener('storage',sync);return()=>window.removeEventListener('storage',sync)},[]);const save=v=>{setLeads(v);localStorage.setItem('tw-leads',JSON.stringify(v))},notify=t=>{setToast(t);setTimeout(()=>setToast(''),3500)},age=l=>Math.floor((Date.now()-l.sent)/864e5),expired=l=>l.status==='รอรับ Lead'&&age(l)>=5;function update(id,patch,msg){save(leads.map(l=>l.id===id?{...l,...patch,logs:[...(l.logs||[]),{text:msg,time:new Date().toLocaleString('th-TH')}]}:l));notify(msg)}const counts=s=>leads.filter(l=>l.status===s).length;let visible=leads.filter(l=>(role==='Admin'||l.epc===partner)&&(!query||[l.id,l.name,l.province,l.epc].join(' ').toLowerCase().includes(query.toLowerCase()))&&(filter==='ทั้งหมด'||l.status===filter));const tasks=leads.filter(l=>l.status==='รอรับ Lead'&&age(l)>=3);function detail(l){setSelected(l.id);setModal('detail')}let current=leads.find(l=>l.id===selected);const Badge=({s})=><span className={'badge '+({'Lead ใหม่':'new','รอรับ Lead':'wait',Pending:'pending',Close:'close',Lost:'lost'}[s]||'')}>{s}</span>;
-return <div className="app"><aside><a className="brand" onClick={()=>setPage('ภาพรวม')}><span className="te-logo"><img src="/assets/terawatt-logo.png" alt="Terawatt Energy"/></span></a><div className="workspace"><span className="workspace-icon">T</span><div>Terawatt Workspace<small>Lead management platform</small></div><ChevronDown size={14}/></div><div className="navlabel">WORKSPACE</div><nav>{[['ภาพรวม',LayoutDashboard],['Leads ทั้งหมด',Users],['พาร์ทเนอร์ EPC',Building2],['รายงานและสถิติ',ChartNoAxesCombined]].map(([n,I])=><button className={page===n?'active':''} onClick={()=>{setPage(n);setFilter('ทั้งหมด')}}><I size={19}/>{n}{n==='Leads ทั้งหมด'&&<b>{leads.length}</b>}</button>)}</nav><div className="sidebar-bottom"><div className="help"><div className="sun"><Sun size={21}/></div><strong>Powering better connections.</strong><p>เชื่อมต่อทุกโอกาส สู่พลังงานที่ยั่งยืน</p><span>Terawatt Partner Network ↗</span></div><button onClick={()=>setModal('settings')}><Settings size={18}/>ตั้งค่าระบบ</button><div className="profile"><span className="avatar">AD</span><div>Terawatt Admin<small>ผู้ดูแลระบบ</small></div><a className="demo-logout" href="/#customer" aria-label="ออกจากหน้าทดลอง" title="ออกจากหน้าทดลอง"><LogOut size={18}/></a></div></div></aside><main><header><div className="crumb">Workspace <span>/</span> <strong>{page}</strong></div><div className="header-right"><span className="live-dot"/>ระบบพร้อมใช้งาน<button className="bell" onClick={()=>setModal('alerts')}><Bell size={19}/>{tasks.length>0&&<i/>}</button><span className="avatar small">AD</span></div></header><div className="content"><div className="title-row"><div><div className="eyebrow">TERAWATT LEAD HUB</div><h1>{role==='EPC'?'EPC Portal':page}</h1><p>จัดการทุกโอกาสทางธุรกิจ เชื่อมต่อ Lead กับพาร์ทเนอร์ที่ใช่</p></div><div className="actions">{role==='Admin'&&<button className="btn primary" onClick={()=>{setPage('พาร์ทเนอร์ EPC');setAddingEpc(true)}}><Building2 size={16}/>เพิ่ม EPC</button>}<a className="btn" href="#customer">หน้ารับลูกค้าจาก Ads ↗</a><button className="btn" onClick={()=>setRole(role==='Admin'?'EPC':'Admin')}><ShieldCheck size={16}/>{role==='Admin'?'ทดลองมุมมอง EPC':'กลับฝั่ง Admin'}</button><button className="btn primary" onClick={()=>setModal('add')}><Plus size={17}/> เพิ่ม Lead ใหม่</button></div></div><div className="demo"><span>DEMO WORKSPACE</span> ข้อมูลตัวอย่าง • บันทึกเฉพาะในเบราว์เซอร์นี้ • อีเมลและการดึงคืนเป็นการจำลอง{role==='EPC'&&<select value={partner} onChange={e=>setPartner(e.target.value)}>{partners.map(p=><option>{p}</option>)}</select>}</div>
-{page==='พาร์ทเนอร์ EPC'?<EPCManager epcs={demoEpcs} saveEpc={saveDemoEpc} localOnly openCreate={addingEpc} onCreateOpened={()=>setAddingEpc(false)}/>:<><div className="stats">{[['Leads ทั้งหมด',leads.length,Users,'ทุกโอกาสอยู่ในที่เดียว','mint'],['รอ EPC กดรับ',counts('รอรับ Lead'),Send,'รอการตอบรับจากพาร์ทเนอร์','amber'],['อยู่ระหว่างดำเนินการ',counts('Pending'),Clock,'EPC กำลังติดต่อลูกค้า','blue'],['ปิดการขายสำเร็จ',counts('Close'),Check,'เปลี่ยนโอกาสให้เป็นความสำเร็จ','green']].map(([t,n,I,sub,c])=><div className="stat"><div className="stat-top">{t}<span className={'stat-icon '+c}><I size={18}/></span></div><div className="number">{String(n).padStart(2,'0')}<span>Leads</span></div><small>{sub}</small></div>)}</div>
-<div className="middle"><section className="panel pipeline"><div className="section-title"><h2>เส้นทางของ Lead <span>LEAD PIPELINE</span></h2><button onClick={()=>setPage('รายงานและสถิติ')}>ดูรายงาน <ArrowUpRight size={15}/></button></div><div className="pipeline-bar">{['Lead ใหม่','รอรับ Lead','Pending','Close','Lost'].map((s,i)=><div style={{flex:Math.max(counts(s),.5)}} className={'segment seg'+i}/>)}</div><div className="legend">{['Lead ใหม่','รอรับ Lead','Pending','Close','Lost'].map((s,i)=><div><span><i className={'seg'+i}/>{s}</span><strong>{counts(s)} <small>Leads</small></strong></div>)}</div></section><section className="panel sla"><div className="sla-icon"><Clock size={22}/></div><div><h2>ทุก Lead มีเวลาที่สำคัญ</h2><p><b>3 วัน</b> โทรติดตาม EPC ให้กดรับ Lead</p><p><b>5 วัน</b> ดึงคืนเพื่อเลือกส่งให้ EPC เจ้าใหม่</p></div><span className="sla-tag">SLA POLICY</span></section></div>
-{tasks.length>0&&role==='Admin'&&<div className="attention"><span className="attention-icon"><Bell size={18}/></span><div><strong>มี {tasks.length} Leads ที่ต้องติดตาม</strong><span> {tasks.filter(l=>!expired(l)).length} รายการครบ 3 วัน · {tasks.filter(expired).length} รายการครบ 5 วัน รอดึงคืน</span></div><button onClick={()=>setModal('alerts')}>จัดการรายการ <ArrowRight size={16}/></button></div>}
-<section className="panel lead-panel"><div className="table-heading"><div><h2>{page==='รายงานและสถิติ'?'รายงานสถานะ Lead':'Leads ทั้งหมด'} <span className="count">{visible.length}</span></h2><p>ติดตามและจัดการ Lead ของคุณและพาร์ทเนอร์ได้ในที่เดียว</p></div><button className="btn" onClick={()=>{let csv='\uFEFFรหัส,ลูกค้า,EPC,สถานะ\n'+visible.map(l=>[l.id,role==='EPC'&&l.status==='รอรับ Lead'?'ข้อมูลปกปิด':l.name,l.epc,l.status].map(x=>'"'+x.replaceAll('"','""')+'"').join(',')).join('\n');let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='terawatt-leads.csv';a.click();URL.revokeObjectURL(a.href)}}><Download size={15}/>ส่งออกข้อมูล</button></div><div className="filters"><div className="tabs">{['ทั้งหมด','Lead ใหม่','รอรับ Lead','Pending','Close','Lost'].map(s=><button className={filter===s?'chosen':''} onClick={()=>setFilter(s)}>{s}</button>)}</div><label className="search"><Search size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="ค้นหาชื่อ, รหัส Lead, EPC..."/></label></div><div className="table-wrap"><table><thead><tr><th>รหัส / ลูกค้า</th><th>พื้นที่ / ขนาดระบบ</th><th>พาร์ทเนอร์ EPC</th><th>สถานะ</th><th>การติดตาม</th><th/></tr></thead><tbody>{visible.map((l,i)=><tr onClick={()=>detail(l)}><td><div className="customer"><span className={'customer-icon ci'+i%3}>{l.type==='บ้านพักอาศัย'?<Users size={17}/>:<Building2 size={17}/>}</span><div><strong>{role==='EPC'&&l.status==='รอรับ Lead'?'ข้อมูลลูกค้าถูกปกปิด':l.name}</strong><small>{l.id} <span>· {l.type}</span></small></div></div></td><td>{l.province}<small>{l.kw} kWp</small></td><td>{l.epc?<span className="epc-cell"><i className={'epclogo c'+partners.indexOf(l.epc)}>{l.epc.split(' ').map(x=>x[0]).join('')}</i>{l.epc}</span>:<span className="muted">ยังไม่ได้มอบหมาย</span>}</td><td><Badge s={l.status}/></td><td>{l.status==='รอรับ Lead'?<span className={expired(l)?'danger':age(l)>=3?'warning':'muted'}>{expired(l)?'ครบ 5 วัน · รอดึงคืน':age(l)>=3?'ครบ 3 วัน · โทรติดตาม':'รอรับอีก '+(5-age(l))+' วัน'}</span>:<span className="muted">{l.status==='Lead ใหม่'?'พร้อมส่งให้ EPC':'อัปเดตแล้ว'}</span>}</td><td><ArrowUpRight size={17}/></td></tr>)}</tbody></table>{!visible.length&&<div className="empty">ไม่พบ Lead ที่ตรงกับการค้นหา</div>}</div><div className="table-footer">แสดง {visible.length} จาก {leads.length} รายการ<span>ข้อมูลตัวอย่างสำหรับทดลองระบบ</span></div></section></>}
-<footer><span>© 2026 Terawatt. All rights reserved.</span><span><span className="live-dot"/> Better energy. Better connections.</span></footer></div></main>
-{toast&&<div className="toast"><Check size={18}/>{toast}</div>}{modal&&<div className="overlay" onClick={()=>setModal(null)}><div className="modal" onClick={e=>e.stopPropagation()}><button className="close-button" onClick={()=>setModal(null)}><X size={20}/></button>{modal==='add'?<><div className="eyebrow">NEW OPPORTUNITY</div><h2>เพิ่ม Lead ลูกค้า</h2><p>ฟอร์มรับความสนใจติดตั้งโซลาร์เซลล์</p><form onSubmit={e=>{e.preventDefault();let f=new FormData(e.target);let l={id:'TW-'+Date.now().toString().slice(-6),name:f.get('name'),phone:f.get('phone'),email:f.get('email'),province:f.get('province'),kw:+f.get('kw'),type:f.get('type'),status:'Lead ใหม่',epc:'',sent:Date.now(),logs:[]};save([l,...leads]);setModal(null);notify('บันทึก Lead ใหม่เรียบร้อย')}}><label>ชื่อผู้ติดต่อ / บริษัท<input name="name" required/></label><div className="form-grid"><label>เบอร์โทรศัพท์<input name="phone" type="tel" pattern="[0-9+ ()-]{9,16}" required/></label><label>อีเมล<input name="email" type="email" required/></label><label>จังหวัด<input name="province" required/></label><label>ขนาดระบบ (kWp)<input name="kw" type="number" min="1" required/></label></div><label>ประเภท<select name="type"><option>บ้านพักอาศัย</option><option>อาคารพาณิชย์</option><option>โรงงาน / อุตสาหกรรม</option></select></label><label className="consent"><input type="checkbox" required/> ยินยอมให้ Terawatt ส่งข้อมูลติดต่อให้พาร์ทเนอร์ EPC เพื่อเสนอการติดตั้ง</label><button className="btn primary full">บันทึก Lead</button></form></>:modal==='alerts'?<><h2>รายการที่ต้องติดตาม</h2><p>กำหนดเวลานับจากวันที่ส่งให้ EPC แต่ละรอบ</p>{tasks.length?tasks.map(l=><div className="task"><strong>{l.id} · {l.epc}</strong><p>{l.name}</p><button className="btn" onClick={()=>{if(expired(l)){update(l.id,{epc:'',status:'Lead ใหม่'},'ดึง Lead คืนแล้ว กรุณาเลือก EPC ใหม่')}else update(l.id,{},'บันทึกการโทรติดตาม EPC แล้ว')}}>{expired(l)?'ดึง Lead คืน':'บันทึกว่าโทรติดตามแล้ว'}</button></div>):<p>ไม่มีรายการค้างติดตาม</p>}</>:modal==='settings'?<><h2>การตั้งค่าระบบ</h2><p>ต้นแบบ ReactJS • ข้อมูลบันทึกใน Local Storage</p><div className="task">ติดตาม EPC: วันที่ 3<br/>ดึง Lead คืน: วันที่ 5<br/>สถานะหลังรับ: Pending / Close / Lost</div><p>การใช้งานจริงต้องเพิ่มฐานข้อมูล การยืนยันตัวตน การแบ่งสิทธิ์ การส่งอีเมล และงานตามเวลาฝั่งเซิร์ฟเวอร์</p></>:current&&<><div className="eyebrow">{current.id}</div><h2>{role==='EPC'&&current.status==='รอรับ Lead'?'โอกาสใหม่สำหรับคุณ':current.name}</h2><Badge s={current.status}/><div className="task">{current.type} · {current.province}<br/>ขนาดระบบ {current.kw} kWp</div>{role==='EPC'&&current.status==='รอรับ Lead'?<><p>กดรับ Lead เพื่อดูชื่อ เบอร์โทร และอีเมลของลูกค้า</p><button className="btn primary full" disabled={expired(current)} onClick={()=>update(current.id,{status:'Pending'},'รับ Lead แล้ว กรุณาติดต่อลูกค้า')}>{expired(current)?'Lead หมดเวลารับแล้ว':'ยืนยันรับ Lead'}</button></>:<><p><Phone size={14}/> {current.phone}<br/>{current.email}</p>{role==='Admin'&&current.status==='Lead ใหม่'&&<><label>เลือก EPC ที่ต้องการส่ง<select value={epc} onChange={e=>setEpc(e.target.value)}>{partners.map(p=><option>{p}</option>)}</select></label><button className="btn primary full" onClick={()=>{update(current.id,{epc,status:'รอรับ Lead',sent:Date.now()},'มอบหมาย Lead แล้ว (จำลองอีเมล)');setModal('email')}}><Send size={16}/>ส่ง Lead ให้ EPC</button></>}{['Pending','Close','Lost'].includes(current.status)&&<label>อัปเดตสถานะ<select value={current.status} onChange={e=>update(current.id,{status:e.target.value},'อัปเดตสถานะเป็น '+e.target.value)}>{['Pending','Close','Lost'].map(s=><option>{s}</option>)}</select></label>}{role==='Admin'&&current.status==='รอรับ Lead'&&<><p>ส่งให้ {current.epc} · ผ่านมา {age(current)} วัน</p>{expired(current)&&<button className="btn full" onClick={()=>update(current.id,{status:'Lead ใหม่',epc:''},'ดึง Lead คืนแล้ว')}>ดึงคืนเพื่อเลือก EPC ใหม่</button>}</>}</>}{modal==='email'&&<div className="email-preview"><strong>ตัวอย่างอีเมล — ยังไม่ได้ส่งจริง</strong><p>ถึง: ทีม {current.epc}<br/>เรื่อง: คุณได้รับ Lead ใหม่ {current.id}</p><p>กรุณาเข้าสู่ EPC Portal เพื่อยืนยันรับ Lead ภายใน 5 วัน จึงจะเห็นข้อมูลติดต่อลูกค้า</p><code>{location.origin}/?lead={current.id}</code></div>}{current.answers&&<div className="task"><strong>คำตอบจากลูกค้า</strong><p>สถานที่: {current.answers.property}<br/>ค่าไฟต่อเดือน: {current.answers.bill}<br/>กรรมสิทธิ์: {current.answers.ownership}<br/>แผนติดตั้ง: {current.answers.timeline}</p><small>แหล่งที่มา: {current.source}{current.campaign&&' · '+current.campaign}</small></div>}<div className="history"><h3>ประวัติการดำเนินการ</h3>{current.logs?.length?current.logs.map(x=><p>{x.text}<small>{x.time}</small></p>):<p>ยังไม่มีประวัติการดำเนินการ</p>}</div></>}</div></div>}</div>}
-function Router(){const[route,setRoute]=useState(location.hash);useEffect(()=>{const change=()=>setRoute(location.hash);window.addEventListener('hashchange',change);return()=>window.removeEventListener('hashchange',change)},[]);const params=new URLSearchParams(location.search);const customerRoute=route==='#customer'||(!route&&!params.has('assignment')&&!params.has('gmail'));return customerRoute?<Customer/>:route==='#epc'||params.has('assignment')?<EPCPortal/>:configured?<LiveApp/>:<App/>}createRoot(document.getElementById('root')).render(<Router/>);
+import EPCPortal from "./EPCPortal";
+import EPCManager from "./EPCManager";
+import LiveApp from "./LiveApp";
+import { configured } from "./backend";
+import Customer from "./Customer";
+import React, { useState, useEffect } from "react";
+import { createRoot } from "react-dom/client";
+import {
+  LayoutDashboard,
+  Users,
+  Building2,
+  ChartNoAxesCombined,
+  Settings,
+  ArrowUpRight,
+  Plus,
+  Search,
+  ChevronDown,
+  Bell,
+  ArrowRight,
+  Clock,
+  Check,
+  Send,
+  X,
+  Phone,
+  Sun,
+  Download,
+  FileText,
+  ShieldCheck,
+  LogOut,
+} from "lucide-react";
+import "./style.css";
+import "./solar-theme.css";
+const partners = ["Solar Prime", "Energy Absolute", "Sunwork EPC", "GreenVolt"];
+const initial = [
+  [
+    "TW-1028",
+    "บริษัท เอเวอร์กรีน ฟู้ดส์ จำกัด",
+    "โรงงาน / อุตสาหกรรม",
+    "สมุทรปราการ",
+    250,
+    "Solar Prime",
+    "รอรับ Lead",
+    3,
+  ],
+  [
+    "TW-1027",
+    "คุณณัฐวุฒิ วัฒนกุล",
+    "บ้านพักอาศัย",
+    "กรุงเทพมหานคร",
+    10,
+    "Sunwork EPC",
+    "Pending",
+    1,
+  ],
+  [
+    "TW-1026",
+    "บริษัท พีเอส โลจิสติกส์ จำกัด",
+    "อาคารพาณิชย์",
+    "ชลบุรี",
+    120,
+    "",
+    "Lead ใหม่",
+    0,
+  ],
+  [
+    "TW-1025",
+    "บริษัท นอร์ธ สตาร์ เท็กซ์ไทล์ จำกัด",
+    "โรงงาน / อุตสาหกรรม",
+    "ปทุมธานี",
+    500,
+    "Energy Absolute",
+    "Close",
+    2,
+  ],
+  [
+    "TW-1024",
+    "คุณปิยะดา ศรีสุข",
+    "บ้านพักอาศัย",
+    "นนทบุรี",
+    15,
+    "GreenVolt",
+    "รอรับ Lead",
+    5,
+  ],
+  [
+    "TW-1023",
+    "บริษัท บลูโอเชียน รีเทล จำกัด",
+    "อาคารพาณิชย์",
+    "กรุงเทพมหานคร",
+    80,
+    "Solar Prime",
+    "Pending",
+    2,
+  ],
+  [
+    "TW-1022",
+    "คุณธนกร สุขสวัสดิ์",
+    "บ้านพักอาศัย",
+    "นครปฐม",
+    5,
+    "Sunwork EPC",
+    "Lost",
+    1,
+  ],
+  [
+    "TW-1021",
+    "บริษัท อะกริเทค โซลูชัน จำกัด",
+    "โรงงาน / อุตสาหกรรม",
+    "อยุธยา",
+    320,
+    "",
+    "Lead ใหม่",
+    0,
+  ],
+].map((a, i) => ({
+  id: a[0],
+  name: a[1],
+  type: a[2],
+  province: a[3],
+  kw: a[4],
+  epc: a[5],
+  status: a[6],
+  sent: Date.now() - a[7] * 864e5,
+  phone: "081-000-" + (1000 + i),
+  email: "customer" + i + "@example.com",
+  logs: [],
+}));
+function App() {
+  const [demoEpcs, setDemoEpcs] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("tw-demo-epcs"));
+      if (Array.isArray(saved)) return saved;
+    } catch {}
+    return ["Solar Prime", "Energy Absolute", "Sunwork EPC", "GreenVolt"].map(
+      (name, i) => ({
+        id: "demo-" + i,
+        name,
+        email: "",
+        phone: "",
+        employeeCount: null,
+        products: [],
+      }),
+    );
+  });
+  const partners = demoEpcs.map((e) => e.name);
+  const [addingEpc, setAddingEpc] = useState(false);
+  async function saveDemoEpc(a) {
+    if (
+      demoEpcs.some(
+        (e) =>
+          e.id !== a.p_id && e.email.toLowerCase() === a.p_email.toLowerCase(),
+      )
+    )
+      throw new Error("อีเมลกลางนี้มี EPC อยู่แล้ว");
+    const record = {
+      id: a.p_id || crypto.randomUUID(),
+      name: a.p_name,
+      email: a.p_email,
+      phone: a.p_phone,
+      employeeCount: a.p_employee_count,
+      products: a.p_products,
+    };
+    const next = a.p_id
+      ? demoEpcs.map((e) => (e.id === a.p_id ? record : e))
+      : [...demoEpcs, record];
+    localStorage.setItem("tw-demo-epcs", JSON.stringify(next));
+    setDemoEpcs(next);
+  }
+  let [leads, setLeads] = useState(() => {
+      try {
+        return JSON.parse(localStorage.getItem("tw-leads")) || initial;
+      } catch {
+        return initial;
+      }
+    }),
+    [page, setPage] = useState("ภาพรวม"),
+    [query, setQuery] = useState(""),
+    [filter, setFilter] = useState("ทั้งหมด"),
+    [modal, setModal] = useState(null),
+    [selected, setSelected] = useState(null),
+    [epc, setEpc] = useState(partners[0]),
+    [toast, setToast] = useState(""),
+    [role, setRole] = useState("Admin"),
+    [partner, setPartner] = useState(partners[0]);
+  useEffect(() => {
+    const sync = () => {
+      try {
+        const v = JSON.parse(localStorage.getItem("tw-leads"));
+        if (v) setLeads(v);
+      } catch {}
+    };
+    window.addEventListener("storage", sync);
+    return () => window.removeEventListener("storage", sync);
+  }, []);
+  const save = (v) => {
+      setLeads(v);
+      localStorage.setItem("tw-leads", JSON.stringify(v));
+    },
+    notify = (t) => {
+      setToast(t);
+      setTimeout(() => setToast(""), 3500);
+    },
+    age = (l) => Math.floor((Date.now() - l.sent) / 864e5),
+    expired = (l) => l.status === "รอรับ Lead" && age(l) >= 5;
+  function update(id, patch, msg) {
+    save(
+      leads.map((l) =>
+        l.id === id
+          ? {
+              ...l,
+              ...patch,
+              logs: [
+                ...(l.logs || []),
+                { text: msg, time: new Date().toLocaleString("th-TH") },
+              ],
+            }
+          : l,
+      ),
+    );
+    notify(msg);
+  }
+  const counts = (s) => leads.filter((l) => l.status === s).length;
+  let visible = leads.filter(
+    (l) =>
+      (role === "Admin" || l.epc === partner) &&
+      (!query ||
+        [l.id, l.name, l.province, l.epc]
+          .join(" ")
+          .toLowerCase()
+          .includes(query.toLowerCase())) &&
+      (filter === "ทั้งหมด" || l.status === filter),
+  );
+  const tasks = leads.filter((l) => l.status === "รอรับ Lead" && age(l) >= 3);
+  function detail(l) {
+    setSelected(l.id);
+    setModal("detail");
+  }
+  let current = leads.find((l) => l.id === selected);
+  const Badge = ({ s }) => (
+    <span
+      className={
+        "badge " +
+        ({
+          "Lead ใหม่": "new",
+          "รอรับ Lead": "wait",
+          Pending: "pending",
+          Close: "close",
+          Lost: "lost",
+        }[s] || "")
+      }
+    >
+      {s}
+    </span>
+  );
+  return (
+    <div className="app">
+      <aside>
+        <a className="brand" onClick={() => setPage("ภาพรวม")}>
+          <span className="te-logo">
+            <img src="/assets/terawatt-logo.png" alt="Terawatt Energy" />
+          </span>
+        </a>
+        <div className="workspace">
+          <span className="workspace-icon">T</span>
+          <div>
+            Terawatt Workspace<small>Lead management platform</small>
+          </div>
+          <ChevronDown size={14} />
+        </div>
+        <div className="navlabel">WORKSPACE</div>
+        <nav>
+          {[
+            ["ภาพรวม", LayoutDashboard],
+            ["Leads ทั้งหมด", Users],
+            ["พาร์ทเนอร์ EPC", Building2],
+            ["รายงานและสถิติ", ChartNoAxesCombined],
+          ].map(([n, I]) => (
+            <button
+              className={page === n ? "active" : ""}
+              onClick={() => {
+                setPage(n);
+                setFilter("ทั้งหมด");
+              }}
+            >
+              <I size={19} />
+              {n}
+              {n === "Leads ทั้งหมด" && <b>{leads.length}</b>}
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-bottom">
+          <div className="help">
+            <div className="sun">
+              <Sun size={21} />
+            </div>
+            <strong>Powering better connections.</strong>
+            <p>เชื่อมต่อทุกโอกาส สู่พลังงานที่ยั่งยืน</p>
+            <span>Terawatt Partner Network ↗</span>
+          </div>
+          <button onClick={() => setModal("settings")}>
+            <Settings size={18} />
+            ตั้งค่าระบบ
+          </button>
+          <div className="profile">
+            <span className="avatar">AD</span>
+            <div>
+              Terawatt Admin<small>ผู้ดูแลระบบ</small>
+            </div>
+            <a
+              className="demo-logout"
+              href="/#customer"
+              aria-label="ออกจากหน้าทดลอง"
+              title="ออกจากหน้าทดลอง"
+            >
+              <LogOut size={18} />
+            </a>
+          </div>
+        </div>
+      </aside>
+      <main>
+        <header>
+          <div className="crumb">
+            Workspace <span>/</span> <strong>{page}</strong>
+          </div>
+          <div className="header-right">
+            <span className="live-dot" />
+            ระบบพร้อมใช้งาน
+            <button className="bell" onClick={() => setModal("alerts")}>
+              <Bell size={19} />
+              {tasks.length > 0 && <i />}
+            </button>
+            <span className="avatar small">AD</span>
+          </div>
+        </header>
+        <div className="content">
+          <div className="title-row">
+            <div>
+              <div className="eyebrow">TERAWATT LEAD HUB</div>
+              <h1>{role === "EPC" ? "EPC Portal" : page}</h1>
+              <p>จัดการทุกโอกาสทางธุรกิจ เชื่อมต่อ Lead กับพาร์ทเนอร์ที่ใช่</p>
+            </div>
+            <div className="actions">
+              {role === "Admin" && (
+                <button
+                  className="btn primary"
+                  onClick={() => {
+                    setPage("พาร์ทเนอร์ EPC");
+                    setAddingEpc(true);
+                  }}
+                >
+                  <Building2 size={16} />
+                  เพิ่ม EPC
+                </button>
+              )}
+              <a className="btn" href="#customer">
+                หน้ารับลูกค้าจาก Ads ↗
+              </a>
+              <button
+                className="btn"
+                onClick={() => setRole(role === "Admin" ? "EPC" : "Admin")}
+              >
+                <ShieldCheck size={16} />
+                {role === "Admin" ? "ทดลองมุมมอง EPC" : "กลับฝั่ง Admin"}
+              </button>
+              <button className="btn primary" onClick={() => setModal("add")}>
+                <Plus size={17} /> เพิ่ม Lead ใหม่
+              </button>
+            </div>
+          </div>
+          <div className="demo">
+            <span>DEMO WORKSPACE</span> ข้อมูลตัวอย่าง •
+            บันทึกเฉพาะในเบราว์เซอร์นี้ • อีเมลและการดึงคืนเป็นการจำลอง
+            {role === "EPC" && (
+              <select
+                value={partner}
+                onChange={(e) => setPartner(e.target.value)}
+              >
+                {partners.map((p) => (
+                  <option>{p}</option>
+                ))}
+              </select>
+            )}
+          </div>
+          {page === "พาร์ทเนอร์ EPC" ? (
+            <EPCManager
+              epcs={demoEpcs}
+              saveEpc={saveDemoEpc}
+              localOnly
+              openCreate={addingEpc}
+              onCreateOpened={() => setAddingEpc(false)}
+            />
+          ) : (
+            <>
+              <div className="stats">
+                {[
+                  [
+                    "Leads ทั้งหมด",
+                    leads.length,
+                    Users,
+                    "ทุกโอกาสอยู่ในที่เดียว",
+                    "mint",
+                  ],
+                  [
+                    "รอ EPC กดรับ",
+                    counts("รอรับ Lead"),
+                    Send,
+                    "รอการตอบรับจากพาร์ทเนอร์",
+                    "amber",
+                  ],
+                  [
+                    "อยู่ระหว่างดำเนินการ",
+                    counts("Pending"),
+                    Clock,
+                    "EPC กำลังติดต่อลูกค้า",
+                    "blue",
+                  ],
+                  [
+                    "ปิดการขายสำเร็จ",
+                    counts("Close"),
+                    Check,
+                    "เปลี่ยนโอกาสให้เป็นความสำเร็จ",
+                    "green",
+                  ],
+                ].map(([t, n, I, sub, c]) => (
+                  <div className="stat">
+                    <div className="stat-top">
+                      {t}
+                      <span className={"stat-icon " + c}>
+                        <I size={18} />
+                      </span>
+                    </div>
+                    <div className="number">
+                      {String(n).padStart(2, "0")}
+                      <span>Leads</span>
+                    </div>
+                    <small>{sub}</small>
+                  </div>
+                ))}
+              </div>
+              <div className="middle">
+                <section className="panel pipeline">
+                  <div className="section-title">
+                    <h2>
+                      เส้นทางของ Lead <span>LEAD PIPELINE</span>
+                    </h2>
+                    <button onClick={() => setPage("รายงานและสถิติ")}>
+                      ดูรายงาน <ArrowUpRight size={15} />
+                    </button>
+                  </div>
+                  <div className="pipeline-bar">
+                    {[
+                      "Lead ใหม่",
+                      "รอรับ Lead",
+                      "Pending",
+                      "Close",
+                      "Lost",
+                    ].map((s, i) => (
+                      <div
+                        style={{ flex: Math.max(counts(s), 0.5) }}
+                        className={"segment seg" + i}
+                      />
+                    ))}
+                  </div>
+                  <div className="legend">
+                    {[
+                      "Lead ใหม่",
+                      "รอรับ Lead",
+                      "Pending",
+                      "Close",
+                      "Lost",
+                    ].map((s, i) => (
+                      <div>
+                        <span>
+                          <i className={"seg" + i} />
+                          {s}
+                        </span>
+                        <strong>
+                          {counts(s)} <small>Leads</small>
+                        </strong>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+                <section className="panel sla">
+                  <div className="sla-icon">
+                    <Clock size={22} />
+                  </div>
+                  <div>
+                    <h2>ทุก Lead มีเวลาที่สำคัญ</h2>
+                    <p>
+                      <b>3 วัน</b> โทรติดตาม EPC ให้กดรับ Lead
+                    </p>
+                    <p>
+                      <b>5 วัน</b> ดึงคืนเพื่อเลือกส่งให้ EPC เจ้าใหม่
+                    </p>
+                  </div>
+                  <span className="sla-tag">SLA POLICY</span>
+                </section>
+              </div>
+              {tasks.length > 0 && role === "Admin" && (
+                <div className="attention">
+                  <span className="attention-icon">
+                    <Bell size={18} />
+                  </span>
+                  <div>
+                    <strong>มี {tasks.length} Leads ที่ต้องติดตาม</strong>
+                    <span>
+                      {" "}
+                      {tasks.filter((l) => !expired(l)).length} รายการครบ 3 วัน
+                      · {tasks.filter(expired).length} รายการครบ 5 วัน รอดึงคืน
+                    </span>
+                  </div>
+                  <button onClick={() => setModal("alerts")}>
+                    จัดการรายการ <ArrowRight size={16} />
+                  </button>
+                </div>
+              )}
+              <section className="panel lead-panel">
+                <div className="table-heading">
+                  <div>
+                    <h2>
+                      {page === "รายงานและสถิติ"
+                        ? "รายงานสถานะ Lead"
+                        : "Leads ทั้งหมด"}{" "}
+                      <span className="count">{visible.length}</span>
+                    </h2>
+                    <p>ติดตามและจัดการ Lead ของคุณและพาร์ทเนอร์ได้ในที่เดียว</p>
+                  </div>
+                  <button
+                    className="btn"
+                    onClick={() => {
+                      let csv =
+                        "\uFEFFรหัส,ลูกค้า,EPC,สถานะ\n" +
+                        visible
+                          .map((l) =>
+                            [
+                              l.id,
+                              role === "EPC" && l.status === "รอรับ Lead"
+                                ? "ข้อมูลปกปิด"
+                                : l.name,
+                              l.epc,
+                              l.status,
+                            ]
+                              .map((x) => '"' + x.replaceAll('"', '""') + '"')
+                              .join(","),
+                          )
+                          .join("\n");
+                      let a = document.createElement("a");
+                      a.href = URL.createObjectURL(
+                        new Blob([csv], { type: "text/csv;charset=utf-8" }),
+                      );
+                      a.download = "terawatt-leads.csv";
+                      a.click();
+                      URL.revokeObjectURL(a.href);
+                    }}
+                  >
+                    <Download size={15} />
+                    ส่งออกข้อมูล
+                  </button>
+                </div>
+                <div className="filters">
+                  <div className="tabs">
+                    {[
+                      "ทั้งหมด",
+                      "Lead ใหม่",
+                      "รอรับ Lead",
+                      "Pending",
+                      "Close",
+                      "Lost",
+                    ].map((s) => (
+                      <button
+                        className={filter === s ? "chosen" : ""}
+                        onClick={() => setFilter(s)}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                  <label className="search">
+                    <Search size={16} />
+                    <input
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder="ค้นหาชื่อ, รหัส Lead, EPC..."
+                    />
+                  </label>
+                </div>
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>รหัส / ลูกค้า</th>
+                        <th>พื้นที่ / ขนาดระบบ</th>
+                        <th>พาร์ทเนอร์ EPC</th>
+                        <th>สถานะ</th>
+                        <th>การติดตาม</th>
+                        <th />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visible.map((l, i) => (
+                        <tr onClick={() => detail(l)}>
+                          <td>
+                            <div className="customer">
+                              <span className={"customer-icon ci" + (i % 3)}>
+                                {l.type === "บ้านพักอาศัย" ? (
+                                  <Users size={17} />
+                                ) : (
+                                  <Building2 size={17} />
+                                )}
+                              </span>
+                              <div>
+                                <strong>
+                                  {role === "EPC" && l.status === "รอรับ Lead"
+                                    ? "ข้อมูลลูกค้าถูกปกปิด"
+                                    : l.name}
+                                </strong>
+                                <small>
+                                  {l.id} <span>· {l.type}</span>
+                                </small>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            {l.province}
+                            <small>{l.kw} kWp</small>
+                          </td>
+                          <td>
+                            {l.epc ? (
+                              <span className="epc-cell">
+                                <i
+                                  className={
+                                    "epclogo c" + partners.indexOf(l.epc)
+                                  }
+                                >
+                                  {l.epc
+                                    .split(" ")
+                                    .map((x) => x[0])
+                                    .join("")}
+                                </i>
+                                {l.epc}
+                              </span>
+                            ) : (
+                              <span className="muted">ยังไม่ได้มอบหมาย</span>
+                            )}
+                          </td>
+                          <td>
+                            <Badge s={l.status} />
+                          </td>
+                          <td>
+                            {l.status === "รอรับ Lead" ? (
+                              <span
+                                className={
+                                  expired(l)
+                                    ? "danger"
+                                    : age(l) >= 3
+                                      ? "warning"
+                                      : "muted"
+                                }
+                              >
+                                {expired(l)
+                                  ? "ครบ 5 วัน · รอดึงคืน"
+                                  : age(l) >= 3
+                                    ? "ครบ 3 วัน · โทรติดตาม"
+                                    : "รอรับอีก " + (5 - age(l)) + " วัน"}
+                              </span>
+                            ) : (
+                              <span className="muted">
+                                {l.status === "Lead ใหม่"
+                                  ? "พร้อมส่งให้ EPC"
+                                  : "อัปเดตแล้ว"}
+                              </span>
+                            )}
+                          </td>
+                          <td>
+                            <ArrowUpRight size={17} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {!visible.length && (
+                    <div className="empty">ไม่พบ Lead ที่ตรงกับการค้นหา</div>
+                  )}
+                </div>
+                <div className="table-footer">
+                  แสดง {visible.length} จาก {leads.length} รายการ
+                  <span>ข้อมูลตัวอย่างสำหรับทดลองระบบ</span>
+                </div>
+              </section>
+            </>
+          )}
+          <footer>
+            <span>© 2026 Terawatt. All rights reserved.</span>
+            <span>
+              <span className="live-dot" /> Better energy. Better connections.
+            </span>
+          </footer>
+        </div>
+      </main>
+      {toast && (
+        <div className="toast">
+          <Check size={18} />
+          {toast}
+        </div>
+      )}
+      {modal && (
+        <div className="overlay" onClick={() => setModal(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <button className="close-button" onClick={() => setModal(null)}>
+              <X size={20} />
+            </button>
+            {modal === "add" ? (
+              <>
+                <div className="eyebrow">NEW OPPORTUNITY</div>
+                <h2>เพิ่ม Lead ลูกค้า</h2>
+                <p>ฟอร์มรับความสนใจติดตั้งโซลาร์เซลล์</p>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    let f = new FormData(e.target);
+                    let l = {
+                      id: "TW-" + Date.now().toString().slice(-6),
+                      name: f.get("name"),
+                      phone: f.get("phone"),
+                      email: f.get("email"),
+                      province: f.get("province"),
+                      kw: +f.get("kw"),
+                      type: f.get("type"),
+                      status: "Lead ใหม่",
+                      epc: "",
+                      sent: Date.now(),
+                      logs: [],
+                    };
+                    save([l, ...leads]);
+                    setModal(null);
+                    notify("บันทึก Lead ใหม่เรียบร้อย");
+                  }}
+                >
+                  <label>
+                    ชื่อผู้ติดต่อ / บริษัท
+                    <input name="name" required />
+                  </label>
+                  <div className="form-grid">
+                    <label>
+                      เบอร์โทรศัพท์
+                      <input
+                        name="phone"
+                        type="tel"
+                        pattern="[0-9+ ()-]{9,16}"
+                        required
+                      />
+                    </label>
+                    <label>
+                      อีเมล
+                      <input name="email" type="email" required />
+                    </label>
+                    <label>
+                      จังหวัด
+                      <input name="province" required />
+                    </label>
+                    <label>
+                      ขนาดระบบ (kWp)
+                      <input name="kw" type="number" min="1" required />
+                    </label>
+                  </div>
+                  <label>
+                    ประเภท
+                    <select name="type">
+                      <option>บ้านพักอาศัย</option>
+                      <option>อาคารพาณิชย์</option>
+                      <option>โรงงาน / อุตสาหกรรม</option>
+                    </select>
+                  </label>
+                  <label className="consent">
+                    <input type="checkbox" required /> ยินยอมให้ Terawatt
+                    ส่งข้อมูลติดต่อให้พาร์ทเนอร์ EPC เพื่อเสนอการติดตั้ง
+                  </label>
+                  <button className="btn primary full">บันทึก Lead</button>
+                </form>
+              </>
+            ) : modal === "alerts" ? (
+              <>
+                <h2>รายการที่ต้องติดตาม</h2>
+                <p>กำหนดเวลานับจากวันที่ส่งให้ EPC แต่ละรอบ</p>
+                {tasks.length ? (
+                  tasks.map((l) => (
+                    <div className="task">
+                      <strong>
+                        {l.id} · {l.epc}
+                      </strong>
+                      <p>{l.name}</p>
+                      <button
+                        className="btn"
+                        onClick={() => {
+                          if (expired(l)) {
+                            update(
+                              l.id,
+                              { epc: "", status: "Lead ใหม่" },
+                              "ดึง Lead คืนแล้ว กรุณาเลือก EPC ใหม่",
+                            );
+                          } else
+                            update(l.id, {}, "บันทึกการโทรติดตาม EPC แล้ว");
+                        }}
+                      >
+                        {expired(l) ? "ดึง Lead คืน" : "บันทึกว่าโทรติดตามแล้ว"}
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <p>ไม่มีรายการค้างติดตาม</p>
+                )}
+              </>
+            ) : modal === "settings" ? (
+              <>
+                <h2>การตั้งค่าระบบ</h2>
+                <p>ต้นแบบ ReactJS • ข้อมูลบันทึกใน Local Storage</p>
+                <div className="task">
+                  ติดตาม EPC: วันที่ 3<br />
+                  ดึง Lead คืน: วันที่ 5<br />
+                  สถานะหลังรับ: Pending / Close / Lost
+                </div>
+                <p>
+                  การใช้งานจริงต้องเพิ่มฐานข้อมูล การยืนยันตัวตน การแบ่งสิทธิ์
+                  การส่งอีเมล และงานตามเวลาฝั่งเซิร์ฟเวอร์
+                </p>
+              </>
+            ) : (
+              current && (
+                <>
+                  <div className="eyebrow">{current.id}</div>
+                  <h2>
+                    {role === "EPC" && current.status === "รอรับ Lead"
+                      ? "โอกาสใหม่สำหรับคุณ"
+                      : current.name}
+                  </h2>
+                  <Badge s={current.status} />
+                  <div className="task">
+                    {current.type} · {current.province}
+                    <br />
+                    ขนาดระบบ {current.kw} kWp
+                  </div>
+                  {role === "EPC" && current.status === "รอรับ Lead" ? (
+                    <>
+                      <p>กดรับ Lead เพื่อดูชื่อ เบอร์โทร และอีเมลของลูกค้า</p>
+                      <button
+                        className="btn primary full"
+                        disabled={expired(current)}
+                        onClick={() =>
+                          update(
+                            current.id,
+                            { status: "Pending" },
+                            "รับ Lead แล้ว กรุณาติดต่อลูกค้า",
+                          )
+                        }
+                      >
+                        {expired(current)
+                          ? "Lead หมดเวลารับแล้ว"
+                          : "ยืนยันรับ Lead"}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <p>
+                        <Phone size={14} /> {current.phone}
+                        <br />
+                        {current.email}
+                      </p>
+                      {role === "Admin" && current.status === "Lead ใหม่" && (
+                        <>
+                          <label>
+                            เลือก EPC ที่ต้องการส่ง
+                            <select
+                              value={epc}
+                              onChange={(e) => setEpc(e.target.value)}
+                            >
+                              {partners.map((p) => (
+                                <option>{p}</option>
+                              ))}
+                            </select>
+                          </label>
+                          <button
+                            className="btn primary full"
+                            onClick={() => {
+                              update(
+                                current.id,
+                                { epc, status: "รอรับ Lead", sent: Date.now() },
+                                "มอบหมาย Lead แล้ว (จำลองอีเมล)",
+                              );
+                              setModal("email");
+                            }}
+                          >
+                            <Send size={16} />
+                            ส่ง Lead ให้ EPC
+                          </button>
+                        </>
+                      )}
+                      {["Pending", "Close", "Lost"].includes(
+                        current.status,
+                      ) && (
+                        <label>
+                          อัปเดตสถานะ
+                          <select
+                            value={current.status}
+                            onChange={(e) =>
+                              update(
+                                current.id,
+                                { status: e.target.value },
+                                "อัปเดตสถานะเป็น " + e.target.value,
+                              )
+                            }
+                          >
+                            {["Pending", "Close", "Lost"].map((s) => (
+                              <option>{s}</option>
+                            ))}
+                          </select>
+                        </label>
+                      )}
+                      {role === "Admin" && current.status === "รอรับ Lead" && (
+                        <>
+                          <p>
+                            ส่งให้ {current.epc} · ผ่านมา {age(current)} วัน
+                          </p>
+                          {expired(current) && (
+                            <button
+                              className="btn full"
+                              onClick={() =>
+                                update(
+                                  current.id,
+                                  { status: "Lead ใหม่", epc: "" },
+                                  "ดึง Lead คืนแล้ว",
+                                )
+                              }
+                            >
+                              ดึงคืนเพื่อเลือก EPC ใหม่
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </>
+                  )}
+                  {modal === "email" && (
+                    <div className="email-preview">
+                      <strong>ตัวอย่างอีเมล — ยังไม่ได้ส่งจริง</strong>
+                      <p>
+                        ถึง: ทีม {current.epc}
+                        <br />
+                        เรื่อง: คุณได้รับ Lead ใหม่ {current.id}
+                      </p>
+                      <p>
+                        กรุณาเข้าสู่ EPC Portal เพื่อยืนยันรับ Lead ภายใน 5 วัน
+                        จึงจะเห็นข้อมูลติดต่อลูกค้า
+                      </p>
+                      <code>
+                        {location.origin}/?lead={current.id}
+                      </code>
+                    </div>
+                  )}
+                  {current.answers && (
+                    <div className="task">
+                      <strong>คำตอบจากลูกค้า</strong>
+                      <p>
+                        สถานที่: {current.answers.property}
+                        <br />
+                        ค่าไฟต่อเดือน: {current.answers.bill}
+                        {/* <br />
+                        กรรมสิทธิ์: {current.answers.ownership}
+                        <br />
+                        แผนติดตั้ง: {current.answers.timeline} */}
+                      </p>
+                      <small>
+                        แหล่งที่มา: {current.source}
+                        {current.campaign && " · " + current.campaign}
+                      </small>
+                    </div>
+                  )}
+                  <div className="history">
+                    <h3>ประวัติการดำเนินการ</h3>
+                    {current.logs?.length ? (
+                      current.logs.map((x) => (
+                        <p>
+                          {x.text}
+                          <small>{x.time}</small>
+                        </p>
+                      ))
+                    ) : (
+                      <p>ยังไม่มีประวัติการดำเนินการ</p>
+                    )}
+                  </div>
+                </>
+              )
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+function Router() {
+  const [route, setRoute] = useState(location.hash);
+  useEffect(() => {
+    const change = () => setRoute(location.hash);
+    window.addEventListener("hashchange", change);
+    return () => window.removeEventListener("hashchange", change);
+  }, []);
+  const params = new URLSearchParams(location.search);
+  const customerRoute =
+    route === "#customer" ||
+    (!route && !params.has("assignment") && !params.has("gmail"));
+  return customerRoute ? (
+    <Customer />
+  ) : route === "#epc" || params.has("assignment") ? (
+    <EPCPortal />
+  ) : configured ? (
+    <LiveApp />
+  ) : (
+    <App />
+  );
+}
+createRoot(document.getElementById("root")).render(<Router />);

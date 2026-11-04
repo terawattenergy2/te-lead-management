@@ -650,32 +650,8 @@ export default function LiveApp() {
             <p>
               {current.status} · {current.epc || "ยังไม่มอบหมาย"}
             </p>
-            <div className="task">
-              {current.type} · {current.province}
-            </div>
-            {current.phone && (
-              <p>
-                โทร: {current.phone}
-                <br />
-                อีเมล: {current.email}
-              </p>
-            )}
-            <div className="task">
-              <strong>คำตอบแบบสอบถาม</strong>
-              <p>
-                ค่าไฟ: {current.answers.bill}
-                <br />
-                กรรมสิทธิ์: {current.answers.ownership}
-                <br />
-                ติดตั้ง: {current.answers.timeline}
-              </p>
-              {admin && (
-                <small>
-                  แหล่งที่มา: {current.source} · {current.campaign}
-                </small>
-              )}
-            </div>
-            {admin && <SurveyDetails data={current.answers.survey} />}{" "}
+            <SurveyDetails lead={current} data={current.answers?.survey} hideContact={!admin && !current.acceptedAt} />
+            {admin && (current.source || current.campaign) && <p className="field-help">{[current.source,current.campaign].filter(Boolean).join(' · ')}</p>}
             {/* {admin && (
               <div className="task">
                 <strong>รายละเอียดโครงการและการติดตาม</strong>

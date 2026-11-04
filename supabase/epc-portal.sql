@@ -56,6 +56,7 @@ begin
  select * into a from public.tw_assignments where id=p_assignment_id and epc_id=p_epc_id and revoked_at is null for update;
  if not found then raise exception 'ไม่พบ Lead หรือไม่มีสิทธิ์เข้าถึง';end if;
  if p_action='accept' then
+ if a.accepted_at is not null then return;end if;
  if a.status<>'รอรับ Lead' or a.sent_at+interval '5 days'<=now() then raise exception 'Lead ไม่พร้อมรับหรือครบกำหนด 5 วันแล้ว';end if;
  update public.tw_assignments set accepted_at=now(),status='Pending' where id=a.id;msg:='EPC รับ Lead ผ่าน EPC Portal';
  elsif p_action='status' then
