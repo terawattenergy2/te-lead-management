@@ -1478,3 +1478,7 @@ nav button[aria-label="อีเมลผู้ส่ง"] svg {
     font-size: 16px;
   }
 }
+
+.epc-pending-modal{width:720px;max-width:100%}.epc-pending-list{display:grid;gap:12px;margin:20px 0}.epc-pending-item{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px;border:1px solid #dce6f0;border-radius:12px;background:#f5f9ff}.epc-pending-item strong{display:block;overflow-wrap:anywhere}.epc-pending-item small{display:block;margin-top:6px;color:#6481a1}.epc-pending-item .btn{flex-shrink:0}@media(max-width:600px){.epc-pending-item{align-items:stretch;flex-direction:column}.epc-pending-item .btn{width:100%}}
+
+.epc-pending-item{display:block}.epc-pending-summary{display:flex;align-items:center;justify-content:space-between;gap:16px}.epc-pending-item .survey-details{margin-top:16px}.epc-pending-item .survey-detail-section{background:#fff}@media(max-width:600px){.epc-pending-summary{align-items:stretch;flex-direction:column}}
