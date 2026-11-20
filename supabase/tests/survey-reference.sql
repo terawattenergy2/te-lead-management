@@ -3,7 +3,7 @@ DO $$
 DECLARE
   a text;
   b text;
-  form jsonb := '{"name":"Reference QA","line":"qa_only","gps":"13.25,100.25","province":"กรุงเทพมหานคร","property":"บ้านพักอาศัย","billAmount":"3500","ev":"มี","usage":"ใช้ช่วงกลางวันเป็นหลัก","battery":"ต้องการ"}';
+  form jsonb := '{"name":"Reference QA","line":"qa_only","phone":"0800000000","email":"qa@example.invalid","gps":"13.25,100.25","province":"กรุงเทพมหานคร","property":"บ้านพักอาศัย","billAmount":"3500","ev":"มี","usage":"ใช้ช่วงกลางวันเป็นหลัก","battery":"ต้องการ"}';
   admin_id uuid;
 BEGIN
   a := public.tw_submit_customer_survey_with_reference(form,'QA','reference-test',true);

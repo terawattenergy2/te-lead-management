@@ -95,18 +95,21 @@ export default function CustomerSurvey({ compact = false }) {
   async function next(e) {
     e.preventDefault();
     setError("");
-    if (step === 0 && !v.name?.trim()) {
-      setError("กรุณากรอกชื่อ-นามสกุล");
-      return;
-    }
-    if (step === 0 && !v.phone?.trim() && !v.line?.trim()) {
-      setError("กรุณากรอกเบอร์โทรหรือ Line ID อย่างน้อยหนึ่งช่อง");
-      return;
-    }
     if (step === 0) {
-      if (v.phone && !/^[0-9]{10}$/.test(v.phone)) {
-        setError("กรุณากรอกเบอร์โทรให้ครบ 10 หลัก หรือเว้นช่องนี้แล้วกรอก Line ID");
-        e.currentTarget.elements.namedItem("phone")?.focus();
+      const fields = e.currentTarget.elements;
+      if (!v.name?.trim()) {
+        setError("กรุณากรอกชื่อ-นามสกุล");
+        fields.namedItem("name")?.focus();
+        return;
+      }
+      if (!/^[0-9]{10}$/.test(v.phone || "")) {
+        setError("กรุณากรอกเบอร์โทรให้ครบ 10 หลัก");
+        fields.namedItem("phone")?.focus();
+        return;
+      }
+      if (!v.line?.trim()) {
+        setError("กรุณากรอก LINE ID");
+        fields.namedItem("line")?.focus();
         return;
       }
       setStep(1);
@@ -165,19 +168,9 @@ export default function CustomerSurvey({ compact = false }) {
           {step === 0 && (
             <>
               {input("name", compact ? "ชื่อ-นามสกุล *" : "1. ชื่อ-นามสกุล *", "text", true, 150)}
-              <div className="lead-contact-group" role="group" aria-labelledby="lead-contact-requirement">
-                <p id="lead-contact-requirement" className="field-help">
-                  ช่องทางติดต่อ * เลือกกรอกเบอร์โทรหรือ Line ID อย่างน้อยหนึ่งช่อง
-                </p>
-                {input(
-                  "phone",
-                  compact ? "เบอร์โทร (10 หลัก)" : "2. เบอร์โทร (10 หลัก)",
-                  "tel",
-                  false,
-                )}
-                {input("line", "Line ID", "text", false, 100)}
-              </div>
-              {input("email", "อีเมล (ไม่บังคับ)", "email", false, 254)}
+              {input("phone", compact ? "เบอร์โทร (10 หลัก) *" : "2. เบอร์โทร (10 หลัก) *", "tel")}
+              {input("line", "LINE ID *", "text", true, 100)}
+              {input("email", "อีเมล *", "email", true, 254)}
             </>
           )}
           {step === 1 && (
