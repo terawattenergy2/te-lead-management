@@ -2,6 +2,7 @@ import ThaiProvinceInput from "./ThaiProvinceInput";
 import GoogleMapPicker from "./GoogleMapPicker";
 import React, { useState } from "react";
 import { configured, rpc } from "./backend";
+import { formatCustomerCode } from "./leadFields";
 export const surveyOptions = {
   service: [
     "ติดตั้งโซลาร์เซลล์ Sigenergy (บ้าน/ธุรกิจ)",
@@ -139,7 +140,7 @@ export default function CustomerSurvey({ compact = false }) {
         <div>✓</div>
         <h2>ได้รับข้อมูลของคุณแล้ว</h2>
         <p>ทีม Terawatt จะติดต่อกลับตามความต้องการที่แจ้งไว้</p>
-        <small>หมายเลขอ้างอิง {done}</small>
+        <small>รหัสลูกค้า {formatCustomerCode(done)}</small>
       </div>
     );
   return (

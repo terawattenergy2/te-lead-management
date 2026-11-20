@@ -1,6 +1,6 @@
 import AdminPassword from "./AdminPassword";
 import SurveyDetails from "./SurveyDetails";
-import { leadFields } from "./leadFields";
+import { leadFields, formatCustomerCode } from "./leadFields";
 import LeadImport from "./LeadImport.jsx";
 import AdminLeadForm from "./AdminLeadForm";
 import GmailSettings from "./GmailSettings";
@@ -170,6 +170,7 @@ export default function LiveApp() {
         l.id,
         l.leadId,
         l.referenceCode,
+        formatCustomerCode(l.referenceCode),
         l.epc,
         l.province,
         l.answers?.imported?.["Lead ID"],
@@ -575,7 +576,7 @@ export default function LiveApp() {
                           <td>
                             <strong>{l.name}</strong>
                             <small>
-                              {l.referenceCode || "รหัสเดิม " + l.leadId.slice(0, 8).toUpperCase()}
+                              {formatCustomerCode(l.referenceCode) || "รหัสเดิม " + l.leadId.slice(0, 8).toUpperCase()}
                               {l.answers?.imported?.["Lead ID"] &&
                                 " · " + l.answers.imported["Lead ID"]}
                             </small>
@@ -652,7 +653,7 @@ export default function LiveApp() {
             >
               ✕
             </button>
-            <div className="eyebrow">{current.referenceCode ? "รหัสลูกค้า " + current.referenceCode : "รหัสเดิม " + current.leadId.slice(0, 8).toUpperCase()}</div>
+            <div className="eyebrow">{current.referenceCode ? "รหัสลูกค้า " + formatCustomerCode(current.referenceCode) : "รหัสเดิม " + current.leadId.slice(0, 8).toUpperCase()}</div>
             <h2>{current.name}</h2>
             {admin && (
               <button
@@ -751,7 +752,7 @@ export default function LiveApp() {
                 {current.referenceCode && (
                   <div className="task">
                     <strong>ประเภทงานตามรหัสลูกค้า</strong>
-                    <p style={{ overflowWrap: "anywhere" }}>{current.referenceCode}</p>
+                    <p style={{ overflowWrap: "anywhere" }}>{formatCustomerCode(current.referenceCode)}</p>
                     <p>{customerCodeSummary(current)}</p>
                   </div>
                 )}

@@ -15,3 +15,7 @@ export const leadFields = [
 export const dateFields = leadFields.filter(
   (x) => x.endsWith(" At") || x === "Last Update",
 );
+
+export function formatCustomerCode(referenceCode) {
+  return referenceCode ? "TE-" + referenceCode : "";
+}
