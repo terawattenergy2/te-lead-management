@@ -152,6 +152,7 @@ export default function LiveApp() {
       [
         l.name,
         l.id,
+        l.leadId,
         l.referenceCode,
         l.epc,
         l.province,
@@ -509,7 +510,7 @@ export default function LiveApp() {
                   )}
                   <label className="search">
                     <input
-                      placeholder="ค้นหาลูกค้า / EPC / จังหวัด"
+                      placeholder="ค้นหาชื่อ / เลขอ้างอิง / EPC / จังหวัด"
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
                     />
@@ -558,7 +559,7 @@ export default function LiveApp() {
                           <td>
                             <strong>{l.name}</strong>
                             <small>
-                              {l.referenceCode || l.leadId.slice(0, 8).toUpperCase()}
+                              {l.referenceCode || "รหัสเดิม " + l.leadId.slice(0, 8).toUpperCase()}
                               {l.answers?.imported?.["Lead ID"] &&
                                 " · " + l.answers.imported["Lead ID"]}
                             </small>
@@ -634,7 +635,7 @@ export default function LiveApp() {
             >
               ✕
             </button>
-            <div className="eyebrow">LEAD {current.referenceCode || current.leadId.slice(0, 8).toUpperCase()}</div>
+            <div className="eyebrow">{current.referenceCode ? "เลขอ้างอิง " + current.referenceCode : "รหัสเดิม " + current.leadId.slice(0, 8).toUpperCase()}</div>
             <h2>{current.name}</h2>
             {admin && (
               <button
