@@ -14,3 +14,14 @@ const token='A'.repeat(43);const listed=await request('leads',undefined,token);a
 const accepted=await request('accept',{assignmentId:'00000000-0000-0000-0000-000000000001',epcId:'ATTACKER-COMPANY'},token);assert.equal(accepted.status,200);assert.equal(called.args.p_epc_id,epcA);assert.equal(called.args.p_action,'accept');
 assert.equal((await handler(new Request('https://test.supabase.co/functions/v1/tw-epc/leads',{headers:{Origin:'https://evil.example',Authorization:'Bearer '+token}}))).status,403);
 console.log('PASS: EPC requires separate session; admin token rejected; company identity comes from server session; forged company ignored; invalid OTP request and untrusted origin denied');
+
+const assignmentId = '00000000-0000-0000-0000-000000000001';
+assert.equal((await request('decline', { assignmentId })).status, 401);
+assert.equal((await request('decline', { assignmentId: 'bad' }, token)).status, 400);
+const declined = await request('decline', { assignmentId, epcId: 'other-company' }, token);
+assert.equal(declined.status, 200);
+assert.equal(called.name, 'tw_epc_portal_action');
+assert.equal(called.args.p_epc_id, epcA);
+assert.equal(called.args.p_assignment_id, assignmentId);
+assert.equal(called.args.p_action, 'decline');
+console.log('PASS: decline validates assignment and derives company from the session');

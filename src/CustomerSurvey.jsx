@@ -63,9 +63,29 @@ export default function CustomerSurvey() {
       />
     </label>
   );
+  function showInvalidField(event) {
+    event.preventDefault();
+    const field = event.target;
+    const firstInvalid = event.currentTarget.querySelector(":invalid:not(fieldset)");
+    if (field !== firstInvalid) return;
+    const { type } = field;
+    const label = (field.getAttribute("aria-label") || field.labels?.[0]?.textContent)
+      ?.split("กรุณาเลือก")[0].trim().replace(/^\d+\.\s*|\s*\*$/g, "");
+    const messages = {
+      email: "กรุณากรอกอีเมลให้ถูกต้อง",
+      number: "กรุณากรอกค่าไฟเป็นตัวเลขระหว่าง 1 ถึง 100,000,000 บาท",
+      checkbox: "กรุณายืนยันความยินยอมก่อนส่งข้อมูล",
+    };
+    setError(messages[type] || (label ? "กรุณาระบุ " + label : "กรุณากรอกข้อมูลให้ครบ"));
+    field.focus();
+  }
   async function next(e) {
     e.preventDefault();
     setError("");
+    if (step === 0 && !v.name?.trim()) {
+      setError("กรุณากรอกชื่อ-นามสกุล");
+      return;
+    }
     if (step === 0 && !v.phone?.trim() && !v.line?.trim()) {
       setError("กรุณากรอกเบอร์โทรหรือ Line ID อย่างน้อยหนึ่งช่อง");
       return;
@@ -113,7 +133,7 @@ export default function CustomerSurvey() {
       <div className="progress">
         <div style={{ width: ((step + 1) / 2) * 100 + "%" }} />
       </div>
-      <form key={step} onSubmit={next}>
+      <form key={step} onSubmit={next} onInvalidCapture={showInvalidField}>
         <fieldset disabled={busy} className="lead-fieldset">
           <h2>
             {
@@ -125,7 +145,6 @@ export default function CustomerSurvey() {
           </h2>
           {step === 0 && (
             <>
-              {/* {choice("service", "1. คุณสนใจในบริการใด *")} */}
               {input("name", "1. ชื่อ-นามสกุล *", "text", true, 150)}
               {input(
                 "phone",
@@ -154,8 +173,7 @@ export default function CustomerSurvey() {
               </p>
               {choice("ev", "7. ท่านมีรถยนต์ไฟฟ้า (EV) หรือไม่ *")}
               {choice("usage", "8. ความต้องการในการใช้โซลาร์เซลล์ *")}
-              {/* {choice("system", "9. สนใจระบบแบบไหน *")} */}
-              {choice("battery", "10. ต้องการ Battery หรือไม่ *")}
+              {choice("battery", "9. ต้องการแบตเตอรี่หรือไม่ *")}
               <label className="consent">
                 <input type="checkbox" required />
                 ยินยอมให้ Terawatt เก็บข้อมูลและคำตอบ

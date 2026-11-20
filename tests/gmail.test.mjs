@@ -31,3 +31,39 @@ assert.equal((await simulate({assignmentId:'00000000-0000-0000-0000-000000000001
 queueRecipient='titawan.udh@gmail.com';queueStatus='sent';
 assert.equal((await simulate({assignmentId:'00000000-0000-0000-0000-000000000001',returnOrigin:'http://localhost:5173'})).status,409);
 console.log('PASS: lead test restricts assignment UUID, local origin, exact test recipient, and prevents repeat sends');
+
+const assignmentId = '00000000-0000-0000-0000-000000000001';
+const processQueue = body => handler(new Request('https://test.supabase.co/functions/v1/tw-gmail/process', {
+  method: 'POST',
+  headers: {Authorization:'Bearer valid', Origin:'http://localhost:5173', 'Content-Type':'application/json'},
+  body: JSON.stringify(body),
+}));
+assert.equal((await processQueue({assignmentId:'invalid'})).status, 400);
+values.TW_PUBLIC_APP_URL = 'https://terawatt.example.invalid/';
+values.TW_APP_ORIGINS = 'https://terawatt.example.invalid';
+const calls = [];
+database.from = table => {
+  if (table !== 'tw_gmail_sender') return oldFrom(table);
+  return {select: () => ({eq: () => ({maybeSingle: async () => ({
+    data: {email:'terawattenergy2@gmail.com', encrypted_refresh_token:encrypted},
+    error: null,
+  })})})};
+};
+database.rpc = async (name, args) => {
+  calls.push([name,args]);
+  return {data: [], error: null};
+};
+const originalFetch = context.fetch;
+context.fetch = async (url, options) => url === 'https://oauth2.googleapis.com/token'
+  ? new Response(JSON.stringify({access_token:'mock-token'}))
+  : originalFetch(url, options);
+assert.equal((await processQueue({assignmentId})).status, 200);
+assert.equal(calls[0][0], 'tw_claim_gmail_batch');
+assert.equal(calls[0][1].p_assignment_id, assignmentId);
+assert.equal((await processQueue({})).status, 200);
+assert.equal(calls[1][1], undefined);
+context.fetch = async () => new Response('', {status:503});
+await assert.rejects(h.send('test-access','qa@example.invalid','test','test','id-test'), {confirmedRejection:false});
+context.fetch = async () => new Response('', {status:400});
+await assert.rejects(h.send('test-access','qa@example.invalid','test','test','id-test'), {confirmedRejection:true});
+console.log('PASS: single-assignment email processing, batch compatibility, and ambiguous send classification');

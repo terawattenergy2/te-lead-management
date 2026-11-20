@@ -8,6 +8,15 @@ import EPCManager from "./EPCManager";
 import { Users, Building2, Mail, UserPlus, Trash2 } from "lucide-react";
 import React, { useEffect, useState, useRef } from "react";
 import { rpc, supabase, gmailRequest } from "./backend";
+const emailStatusLabels = {
+  queued: "รอส่ง",
+  sending: "กำลังส่ง",
+  sent: "Gmail รับคำขอส่งแล้ว",
+  failed: "ส่งไม่สำเร็จ",
+  uncertain: "รอตรวจผลใน Gmail",
+  skipped: "หยุดส่ง",
+};
+
 export default function LiveApp() {
   const linkedAssignment = useRef(
     new URLSearchParams(location.search).get("assignment"),
@@ -364,7 +373,7 @@ export default function LiveApp() {
                     : page === "epcs"
                       ? "ข้อมูลบริษัทและสินค้าที่ซื้อจาก TE"
                       : "ข้อมูลจากแบบสอบถามออนไลน์ · เลือกส่งให้ EPC ได้หลายเจ้า"
-                  : "กดรับ Lead ภายใน 5 วันเพื่อเปิดข้อมูลติดต่อ"}
+                  : "กดรับ Lead ภายใน 3 วันเพื่อเปิดข้อมูลติดต่อ"}
               </p>
             </div>
             <div className="admin-page-actions">
@@ -474,30 +483,21 @@ export default function LiveApp() {
                   </div>
                 ))}
               </div>
-              {admin &&
-                leads.some((l) => l.status === "รอรับ Lead" && age(l) >= 3) && (
-                  <div className="attention">
-                    <div>
-                      <strong>มีรายการครบกำหนดติดตาม</strong>
-                      <p>
-                        วันที่ 3: โทรติดตาม · วันที่ 5:
-                        หมดสิทธิ์รับและดึงคืนเพื่อเลือก EPC ใหม่
-                      </p>
-                    </div>
-                    <button
-                      className="btn"
-                      disabled={busy}
-                      onClick={() =>
-                        action(
-                          () => rpc("tw_reclaim_expired"),
-                          "ดึง Lead ที่ครบ 5 วันคืนแล้ว",
-                        )
-                      }
-                    >
-                      ดึงรายการหมดอายุคืน
-                    </button>
-                  </div>
-                )}
+              {admin && leads.some((lead) => lead.expired) && (
+                <div className="attention">
+                  <p>มี Lead ครบ 3 วัน ระบบกำลังคืนรายการเพื่อให้เลือก EPC ใหม่</p>
+                  <button
+                    className="btn"
+                    disabled={busy}
+                    onClick={() => action(
+                      () => rpc("tw_reclaim_expired"),
+                      "ดึง Lead ที่ครบกำหนดคืนแล้ว",
+                    )}
+                  >
+                    ดึงรายการหมดอายุคืนตอนนี้
+                  </button>
+                </div>
+              )}
               <section className="panel lead-panel">
                 <div className="table-heading">
                   <h2>Leads และสถานะ EPC</h2>
@@ -565,6 +565,9 @@ export default function LiveApp() {
                           <td>{l.province}</td>
                           <td>
                             {l.epc || "ยังไม่มอบหมาย"}
+                            {admin && l.emailStatus && (
+                              <small>อีเมล {emailStatusLabels[l.emailStatus] || l.emailStatus}</small>
+                            )}
                             {!l.epc &&
                               l.answers?.imported?.["Partner Company"] && (
                                 <small>
@@ -585,9 +588,7 @@ export default function LiveApp() {
                             {l.expired
                               ? "หมดเวลารับ Lead"
                               : l.status === "รอรับ Lead"
-                                ? age(l) >= 3
-                                  ? "ครบ 3 วัน · โทรติดตาม"
-                                  : "ผ่านไป " + age(l) + " วัน"
+                                ? "ผ่านไป " + age(l) + " วัน"
                                 : "—"}
                           </td>
                         </tr>
@@ -650,6 +651,35 @@ export default function LiveApp() {
             <p>
               {current.status} · {current.epc || "ยังไม่มอบหมาย"}
             </p>
+            {admin && current.emailStatus && (
+              <div className="task">
+                <p>อีเมลถึง {current.epc} · {emailStatusLabels[current.emailStatus] || current.emailStatus}</p>
+                {current.emailStatus === "uncertain" && (
+                  <p>ตรวจโฟลเดอร์ส่งแล้วใน Gmail เพื่อยืนยันผลก่อนส่งซ้ำ</p>
+                )}
+                {!current.expired && current.status === "รอรับ Lead" &&
+                  ["failed", "queued"].includes(current.emailStatus) && (
+                    <button className="btn" disabled={busy} onClick={() => action(async () => {
+                      if (current.emailStatus === "failed") {
+                        await rpc("tw_retry_assignment_email", { p_assignment_id: current.assignmentId });
+                      }
+                      try {
+                        const result = await gmailRequest("process", {
+                          assignmentId: current.assignmentId,
+                        });
+                        if (result.sent) return "Gmail รับคำขอส่งถึง " + current.epc + " แล้ว";
+                        if (result.failed) return "ส่งอีเมลไม่สำเร็จ";
+                        if (result.uncertain) return "ต้องตรวจผลใน Gmail ก่อนส่งอีกครั้ง";
+                        return "ระบบไม่ได้ส่งอีเมล กรุณาตรวจสถานะล่าสุด";
+                      } catch (error) {
+                        return "ยังส่งอีเมลในคิวไม่ได้ · " + error.message;
+                      }
+                    })}>
+                      {current.emailStatus === "failed" ? "ส่งอีเมลถึง EPC นี้อีกครั้ง" : "ส่งอีเมลถึง EPC นี้"}
+                    </button>
+                  )}
+              </div>
+            )}
             <SurveyDetails lead={current} data={current.answers?.survey} hideContact={!admin && !current.acceptedAt} />
             {admin && (current.source || current.campaign) && <p className="field-help">{[current.source,current.campaign].filter(Boolean).join(' · ')}</p>}
             {/* {admin && (
@@ -769,25 +799,6 @@ export default function LiveApp() {
                   ระบบจะลองส่งอีเมลหลังมอบหมาย Lead
                   ตรวจการเชื่อมบัญชีและผลการส่งได้ที่เมนูอีเมลผู้ส่ง
                 </p>
-                {current.status === "รอรับ Lead" &&
-                  age(current) >= 3 &&
-                  !current.expired && (
-                    <button
-                      disabled={busy}
-                      className="btn full"
-                      onClick={() =>
-                        action(
-                          () =>
-                            rpc("tw_follow_up", {
-                              p_assignment_id: current.assignmentId,
-                            }),
-                          "บันทึกการโทรติดตามแล้ว",
-                        )
-                      }
-                    >
-                      บันทึกว่าโทรติดตาม EPC แล้ว
-                    </button>
-                  )}
               </>
             )}
             {!admin && current.status === "รอรับ Lead" && (
