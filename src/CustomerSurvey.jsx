@@ -55,6 +55,7 @@ export default function CustomerSurvey({ compact = false }) {
       {title}
       <input
         type={type}
+        name={key}
         required={required}
         maxLength={maxLength}
         value={v[key] || ""}
@@ -90,8 +91,17 @@ export default function CustomerSurvey({ compact = false }) {
       setError("กรุณากรอกเบอร์โทรหรือ Line ID อย่างน้อยหนึ่งช่อง");
       return;
     }
-    if (step < 1) {
-      setStep(step + 1);
+    if (step === 0) {
+      const phone = (v.phone || "")
+        .replace(/[๐-๙]/g, (digit) => String(digit.charCodeAt(0) - 0x0e50))
+        .replace(/[\s().-]/g, "");
+      if (v.phone?.trim() && !/^\+?[0-9]{9,15}$/.test(phone)) {
+        setError("กรุณากรอกเบอร์โทร 9–15 หลัก เช่น 081 234 5678 หรือเว้นช่องนี้แล้วกรอก Line ID");
+        e.currentTarget.elements.namedItem("phone")?.focus();
+        return;
+      }
+      set("phone", phone);
+      setStep(1);
       return;
     }
     if (!configured) {
@@ -152,7 +162,7 @@ export default function CustomerSurvey({ compact = false }) {
                 compact ? "เบอร์โทร" : "2. เบอร์โทร (หรือกรอก Line ID ด้านล่าง)",
                 "tel",
                 false,
-                16,
+                32,
               )}
               {input("line", "Line ID", "text", false, 100)}
               <p className="field-help">
