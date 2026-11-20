@@ -57,9 +57,20 @@ export default function CustomerSurvey({ compact = false }) {
         type={type}
         name={key}
         required={required}
-        maxLength={maxLength}
+        maxLength={type === "tel" ? undefined : maxLength}
+        inputMode={type === "tel" ? "numeric" : undefined}
         value={v[key] || ""}
-        onChange={(e) => set(key, e.target.value)}
+        onChange={(e) => {
+          const value = e.target.value;
+          if (type === "tel") {
+            const digits = value
+              .replace(/[๐-๙]/g, (digit) => String(digit.charCodeAt(0) - 0x0e50))
+              .replace(/[^0-9]/g, "");
+            set(key, (value.trimStart().startsWith("+66") ? "0" + digits.slice(2) : digits).slice(0, 10));
+            return;
+          }
+          set(key, value);
+        }}
         {...(type === "number" ? { min: 1, max: 100000000, step: "0.01" } : {})}
       />
     </label>
@@ -92,15 +103,11 @@ export default function CustomerSurvey({ compact = false }) {
       return;
     }
     if (step === 0) {
-      const phone = (v.phone || "")
-        .replace(/[๐-๙]/g, (digit) => String(digit.charCodeAt(0) - 0x0e50))
-        .replace(/[\s().-]/g, "");
-      if (v.phone?.trim() && !/^\+?[0-9]{9,15}$/.test(phone)) {
-        setError("กรุณากรอกเบอร์โทร 9–15 หลัก เช่น 081 234 5678 หรือเว้นช่องนี้แล้วกรอก Line ID");
+      if (v.phone && !/^[0-9]{10}$/.test(v.phone)) {
+        setError("กรุณากรอกเบอร์โทรให้ครบ 10 หลัก หรือเว้นช่องนี้แล้วกรอก Line ID");
         e.currentTarget.elements.namedItem("phone")?.focus();
         return;
       }
-      set("phone", phone);
       setStep(1);
       return;
     }
@@ -159,14 +166,13 @@ export default function CustomerSurvey({ compact = false }) {
               {input("name", compact ? "ชื่อ-นามสกุล *" : "1. ชื่อ-นามสกุล *", "text", true, 150)}
               {input(
                 "phone",
-                compact ? "เบอร์โทร" : "2. เบอร์โทร (หรือกรอก Line ID ด้านล่าง)",
+                compact ? "เบอร์โทร (10 หลัก)" : "2. เบอร์โทร (10 หลัก)",
                 "tel",
                 false,
-                32,
               )}
               {input("line", "Line ID", "text", false, 100)}
               <p className="field-help">
-                กรอกเบอร์โทรหรือ Line ID อย่างน้อยหนึ่งช่อง
+                * กรอกเบอร์โทรหรือ Line ID อย่างน้อยหนึ่งช่อง
               </p>
               {input("email", "อีเมล (ไม่บังคับ)", "email", false, 254)}
             </>
@@ -189,7 +195,7 @@ export default function CustomerSurvey({ compact = false }) {
                 <input type="checkbox" required />
                 ยินยอมให้ Terawatt เก็บข้อมูลและคำตอบ
                 เพื่อให้ทีมงานและพาร์ทเนอร์ EPC ติดต่อให้คำปรึกษา เสนอราคา
-                และบริการตามที่ร้องขอ
+                และบริการตามที่ร้องขอ *
               </label>
             </>
           )}
