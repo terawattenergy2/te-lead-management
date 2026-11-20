@@ -510,7 +510,7 @@ export default function LiveApp() {
                   )}
                   <label className="search">
                     <input
-                      placeholder="ค้นหาชื่อ / เลขอ้างอิง / EPC / จังหวัด"
+                      placeholder="ค้นหาชื่อ / รหัสลูกค้า / EPC / จังหวัด"
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
                     />
@@ -540,7 +540,7 @@ export default function LiveApp() {
                   <table className="mobile-lead-table">
                     <thead>
                       <tr>
-                        <th>ลูกค้า / รหัส</th>
+                        <th>ลูกค้า / รหัสลูกค้า</th>
                         <th>จังหวัด</th>
                         <th>EPC</th>
                         <th>สถานะ</th>
@@ -635,7 +635,7 @@ export default function LiveApp() {
             >
               ✕
             </button>
-            <div className="eyebrow">{current.referenceCode ? "เลขอ้างอิง " + current.referenceCode : "รหัสเดิม " + current.leadId.slice(0, 8).toUpperCase()}</div>
+            <div className="eyebrow">{current.referenceCode ? "รหัสลูกค้า " + current.referenceCode : "รหัสเดิม " + current.leadId.slice(0, 8).toUpperCase()}</div>
             <h2>{current.name}</h2>
             {admin && (
               <button
@@ -731,6 +731,19 @@ export default function LiveApp() {
             {admin && (
               <>
                 <h3>ส่งให้ EPC</h3>
+                {current.referenceCode && (
+                  <div className="task">
+                    <strong>ประเภทงานตามรหัสลูกค้า</strong>
+                    <p style={{ overflowWrap: "anywhere" }}>{current.referenceCode}</p>
+                    <p>{[
+                      current.province,
+                      current.answers?.survey?.property,
+                      current.answers?.survey?.ev && (current.answers.survey.ev === "มี" ? "มีรถ EV" : "ไม่มีรถ EV"),
+                      current.answers?.survey?.usage,
+                      { "ต้องการ": "ต้องการแบตเตอรี่", "ไม่ต้องการ": "ไม่ต้องการแบตเตอรี่", "ขอคำแนะนำ": "ขอคำแนะนำเรื่องแบตเตอรี่" }[current.answers?.survey?.battery],
+                    ].filter(Boolean).join(" · ")}</p>
+                  </div>
+                )}
                 <p>เลือกได้หลายเจ้า แต่ละเจ้ามีสถานะและกำหนดรับของตัวเอง</p>
                 {epcs.length === 0 && (
                   <div className="task">
