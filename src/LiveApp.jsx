@@ -17,6 +17,22 @@ const emailStatusLabels = {
   skipped: "หยุดส่ง",
 };
 
+const referenceProperty = { H: "บ้านพักอาศัย", O: "สำนักงาน", F: "โรงงาน" };
+const referenceEv = { EV: "มีรถ EV", NO: "ไม่มีรถ EV" };
+const referenceUsage = { D: "ใช้ไฟกลางวันเป็นหลัก", N: "ใช้ไฟกลางคืนเป็นหลัก", A: "ใช้ไฟตลอดเวลา" };
+const referenceBattery = { BAT: "ต้องการแบตเตอรี่", NOB: "ไม่ต้องการแบตเตอรี่", ASK: "ขอคำแนะนำเรื่องแบตเตอรี่" };
+
+function customerCodeSummary(lead) {
+  const [province, property, ev, usage, battery] = lead.referenceCode.split("-");
+  return [
+    province === "UNK" ? "ไม่ทราบรหัสจังหวัด" : lead.province || province,
+    referenceProperty[property],
+    referenceEv[ev],
+    referenceUsage[usage],
+    referenceBattery[battery],
+  ].filter(Boolean).join(" · ");
+}
+
 export default function LiveApp() {
   const linkedAssignment = useRef(
     new URLSearchParams(location.search).get("assignment"),
@@ -563,6 +579,7 @@ export default function LiveApp() {
                               {l.answers?.imported?.["Lead ID"] &&
                                 " · " + l.answers.imported["Lead ID"]}
                             </small>
+                            {admin && l.referenceCode && <small>{customerCodeSummary(l)}</small>}
                           </td>
                           <td>{l.province}</td>
                           <td>
@@ -735,13 +752,7 @@ export default function LiveApp() {
                   <div className="task">
                     <strong>ประเภทงานตามรหัสลูกค้า</strong>
                     <p style={{ overflowWrap: "anywhere" }}>{current.referenceCode}</p>
-                    <p>{[
-                      current.province,
-                      current.answers?.survey?.property,
-                      current.answers?.survey?.ev && (current.answers.survey.ev === "มี" ? "มีรถ EV" : "ไม่มีรถ EV"),
-                      current.answers?.survey?.usage,
-                      { "ต้องการ": "ต้องการแบตเตอรี่", "ไม่ต้องการ": "ไม่ต้องการแบตเตอรี่", "ขอคำแนะนำ": "ขอคำแนะนำเรื่องแบตเตอรี่" }[current.answers?.survey?.battery],
-                    ].filter(Boolean).join(" · ")}</p>
+                    <p>{customerCodeSummary(current)}</p>
                   </div>
                 )}
                 <p>เลือกได้หลายเจ้า แต่ละเจ้ามีสถานะและกำหนดรับของตัวเอง</p>
