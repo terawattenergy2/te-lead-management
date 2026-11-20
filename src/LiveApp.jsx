@@ -152,6 +152,7 @@ export default function LiveApp() {
       [
         l.name,
         l.id,
+        l.referenceCode,
         l.epc,
         l.province,
         l.answers?.imported?.["Lead ID"],
@@ -557,7 +558,7 @@ export default function LiveApp() {
                           <td>
                             <strong>{l.name}</strong>
                             <small>
-                              {l.leadId.slice(0, 8).toUpperCase()}
+                              {l.referenceCode || l.leadId.slice(0, 8).toUpperCase()}
                               {l.answers?.imported?.["Lead ID"] &&
                                 " · " + l.answers.imported["Lead ID"]}
                             </small>
@@ -633,7 +634,7 @@ export default function LiveApp() {
             >
               ✕
             </button>
-            <div className="eyebrow">LEAD {current.leadId.slice(0, 8)}</div>
+            <div className="eyebrow">LEAD {current.referenceCode || current.leadId.slice(0, 8).toUpperCase()}</div>
             <h2>{current.name}</h2>
             {admin && (
               <button
