@@ -164,16 +164,18 @@ export default function CustomerSurvey({ compact = false }) {
           {step === 0 && (
             <>
               {input("name", compact ? "ชื่อ-นามสกุล *" : "1. ชื่อ-นามสกุล *", "text", true, 150)}
-              {input(
-                "phone",
-                compact ? "เบอร์โทร (10 หลัก)" : "2. เบอร์โทร (10 หลัก)",
-                "tel",
-                false,
-              )}
-              {input("line", "Line ID", "text", false, 100)}
-              <p className="field-help">
-                * กรอกเบอร์โทรหรือ Line ID อย่างน้อยหนึ่งช่อง
-              </p>
+              <div className="lead-contact-group" role="group" aria-labelledby="lead-contact-requirement">
+                <p id="lead-contact-requirement" className="field-help">
+                  ช่องทางติดต่อ * เลือกกรอกเบอร์โทรหรือ Line ID อย่างน้อยหนึ่งช่อง
+                </p>
+                {input(
+                  "phone",
+                  compact ? "เบอร์โทร (10 หลัก)" : "2. เบอร์โทร (10 หลัก)",
+                  "tel",
+                  false,
+                )}
+                {input("line", "Line ID", "text", false, 100)}
+              </div>
               {input("email", "อีเมล (ไม่บังคับ)", "email", false, 254)}
             </>
           )}

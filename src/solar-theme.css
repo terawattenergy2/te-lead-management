@@ -109,12 +109,12 @@ html{scroll-padding-top:20px}body{overflow-wrap:break-word}button,a,input,select
   font-size: 21px;
   color: #173a62;
 }
-.solar-ad-assessment .lead-fieldset > label {
+.solar-ad-assessment :is(.lead-fieldset, .lead-contact-group) > label {
   margin-bottom: 8px;
   color: #315476;
   line-height: 1.45;
 }
-.solar-ad-assessment .lead-fieldset > label > input:not([type=checkbox]) {
+.solar-ad-assessment :is(.lead-fieldset, .lead-contact-group) > label > input:not([type=checkbox]) {
   margin-top: 4px;
   min-height: 44px;
   font-size: 16px;
@@ -156,7 +156,7 @@ html{scroll-padding-top:20px}body{overflow-wrap:break-word}button,a,input,select
   .solar-ad-assessment > .solar-question-card {
     padding: 14px;
   }
-  .solar-ad-assessment .lead-fieldset > label {
+  .solar-ad-assessment :is(.lead-fieldset, .lead-contact-group) > label {
     margin-bottom: 4px;
   }
 }
