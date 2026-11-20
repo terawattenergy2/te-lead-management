@@ -681,7 +681,11 @@ export default function LiveApp() {
               </div>
             )}
             <SurveyDetails lead={current} data={current.answers?.survey} hideContact={!admin && !current.acceptedAt} />
-            {admin && (current.source || current.campaign) && <p className="field-help">{[current.source,current.campaign].filter(Boolean).join(' · ')}</p>}
+            {admin && (current.source || current.campaign || current.answers?.survey?.utm_medium) && (
+              <p className="field-help">
+                {[current.source, current.answers?.survey?.utm_medium, current.campaign].filter(Boolean).join(" · ")}
+              </p>
+            )}
             {/* {admin && (
               <div className="task">
                 <strong>รายละเอียดโครงการและการติดตาม</strong>

@@ -101,9 +101,10 @@ export default function CustomerSurvey() {
     setBusy(true);
     try {
       const p = new URLSearchParams(location.search);
+      const medium = p.get("utm_medium")?.trim().slice(0, 150);
       setDone(
         await rpc("tw_submit_customer_survey", {
-          p_data: v,
+          p_data: medium ? { ...v, utm_medium: medium } : v,
           p_source: p.get("utm_source") || "หน้าแบบสอบถาม",
           p_campaign: p.get("utm_campaign") || "",
           p_consent: true,
