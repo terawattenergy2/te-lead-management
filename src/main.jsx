@@ -1004,8 +1004,9 @@ function Router() {
     return () => window.removeEventListener("hashchange", change);
   }, []);
   const params = new URLSearchParams(location.search);
-  if (route === "#solar-assessment" && !params.has("assignment")) {
-    return <SolarAssessmentPage />;
+  const solar50k = params.get("utm_campaign") === "solar_50k_story";
+  if ((route === "#solar-assessment" || (!route && solar50k)) && !params.has("assignment") && !params.has("gmail")) {
+    return <SolarAssessmentPage solar50k={solar50k} />;
   }
   const customerRoute =
     route === "#customer" ||

@@ -20,7 +20,7 @@ export const surveyOptions = {
   timeline: ["ด่วน (ภายใน 1 เดือน)", "1 - 3 เดือน", "กำลังศึกษา"],
   contact: ["ติดต่อด่วน", "ในเวลาทำการ", "ส่งใบเสนอราคา", "นัดสำรวจหน้างาน"],
 };
-export default function CustomerSurvey() {
+export default function CustomerSurvey({ compact = false }) {
   const [step, setStep] = useState(0),
     [v, setV] = useState({}),
     [busy, setBusy] = useState(false),
@@ -128,7 +128,7 @@ export default function CustomerSurvey() {
   return (
     <>
       <div className="question-top">
-        <span>ประเมินโซลาร์ Sigenergy</span>
+        <span>{compact ? "แบบประเมินเบื้องต้น" : "ประเมินโซลาร์ Sigenergy"}</span>
         <small>ขั้นตอน {step + 1} / 2</small>
       </div>
       <div className="progress">
@@ -139,17 +139,17 @@ export default function CustomerSurvey() {
           <h2>
             {
               [
-                "บริการและช่องทางติดต่อ",
+                compact ? "ติดต่อคุณทางไหนได้บ้าง?" : "บริการและช่องทางติดต่อ",
                 "สถานที่และการใช้พลังงาน",
               ][step]
             }
           </h2>
           {step === 0 && (
             <>
-              {input("name", "1. ชื่อ-นามสกุล *", "text", true, 150)}
+              {input("name", compact ? "ชื่อ-นามสกุล *" : "1. ชื่อ-นามสกุล *", "text", true, 150)}
               {input(
                 "phone",
-                "2. เบอร์โทร (หรือกรอก Line ID ด้านล่าง)",
+                compact ? "เบอร์โทร" : "2. เบอร์โทร (หรือกรอก Line ID ด้านล่าง)",
                 "tel",
                 false,
                 16,
@@ -190,7 +190,7 @@ export default function CustomerSurvey() {
           </p>
         )}
         <div className="question-controls">
-          <button
+          {(!compact || step > 0) && <button
             type="button"
             className="btn"
             disabled={step === 0 || busy}
@@ -200,7 +200,7 @@ export default function CustomerSurvey() {
             }}
           >
             ย้อนกลับ
-          </button>
+          </button>}
           <button className="btn primary" disabled={busy}>
             {busy
               ? "กำลังส่งข้อมูล…"

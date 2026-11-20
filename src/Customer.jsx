@@ -379,17 +379,22 @@ export default function Customer() {
   );
 }
 
-export function SolarAssessmentPage() {
+export function SolarAssessmentPage({ solar50k = false }) {
+  const title = solar50k ? "ประเมินโซลาร์ 50K" : "ประเมินโซลาร์สำหรับคุณ";
+
   return (
     <main className="solar-site solar-ad-assessment">
-      <div className="solar-ad-brand">
+      <header className="solar-ad-hero">
         <a className="solar-wordmark" href="#customer" aria-label="Terawatt Energy">
           <span className="te-logo"><img src="/assets/terawatt-logo.png" alt="" /></span>
         </a>
-      </div>
+        <h1>{title}</h1>
+        <p>{solar50k ? "แบบประเมินเบื้องต้นกับ Terawatt" : "ให้ Terawatt ช่วยประเมินระบบที่เหมาะกับคุณ"}</p>
+      </header>
       <section className="question-card solar-question-card" aria-label="แบบประเมินโซลาร์">
-        <CustomerSurvey />
+        <CustomerSurvey compact />
       </section>
+      {solar50k && <p className="solar-ad-note">แบบประเมินนี้ไม่ใช่การสมัครรับสิทธิ์โครงการของรัฐ</p>}
     </main>
   );
 }
